@@ -7,7 +7,22 @@
     </GridLayout>
 </ActionBar>
 
-<GridLayout class="page__content">
-  <Label class="page__content-icon fas" text="&#xf015;"></Label>
-  <Label class="page__content-placeholder" text="<!-- Page content goes here -->"></Label>
-</GridLayout>
+<StackLayout height="100%" width="100%">
+  <ContentView height="100%" width="100%">
+    <Mapbox
+      accessToken="{{access_token}}"
+      mapStyle="{{style}}"
+      zoomLevel="10"
+      delay="10"
+      showUserLocation="false"
+      hideCompass="false"
+      hideAttribution="false"
+      hideLogo="false"
+      disableZoom="false"
+      disableRotation="false"
+      disableScroll="false"
+      disableTilt="false"
+      (mapReady)="onMapReady($event)">
+    </Mapbox>
+  </ContentView>
+</StackLayout>
