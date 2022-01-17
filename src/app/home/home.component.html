@@ -1,28 +1,57 @@
 <ActionBar class="action-bar">
-    <NavigationButton visibility="hidden"></NavigationButton>
-    <GridLayout columns="50, *">
-        <Label class="action-bar-title" text="Home" colSpan="2"></Label>
+  <NavigationButton visibility="hidden"></NavigationButton>
+  <GridLayout columns="50, *">
+    <Label class="action-bar-title" text="Home" colSpan="2"></Label>
 
-        <Label class="fas" text="&#xf0c9;" (tap)="onDrawerButtonTap()"></Label>
-    </GridLayout>
+    <Label class="fas" text="&#xf0c9;" (tap)="onDrawerButtonTap()"></Label>
+  </GridLayout>
 </ActionBar>
-
+<!--
 <StackLayout height="100%" width="100%">
   <ContentView height="100%" width="100%">
+
+  </ContentView>
+</StackLayout> -->
+
+<!-- <Page
+    xmlns="http://www.nativescript.org/tns.xsd"
+    xmlns:maps="nativescript-google-maps-sdk"
+> -->
+<StackLayout height="100%" width="100%">
+  <ContentView height="100%" width="100%">
+    <!-- <MapView
+      #mapView
+      (mapReady)="onMapReady($event)"
+      (myLocationTapped)="onMyLocationTapped($event)"
+      (coordinateTapped)="onCoordinateTapped($event)"
+      (coordinateLongPress)="onCoordinateLongPress($event)"
+      (markerSelect)="onMarkerSelect($event)"
+      (markerBeginDragging)="onMarkerBeginDragging($event)"
+      (markerEndDragging)="onMarkerEndDragging($event)"
+      (markerDrag)="onMarkerDrag($event)"
+      (markerInfoWindowTapped)="onMarkerInfoWindowTapped($event)"
+      (markerInfoWindowClosed)="onMarkerInfoWindowClosed($event)"
+      (shapeSelect)="onShapeSelect($event)"
+      (cameraChanged)="onCameraChanged($event)"
+      (cameraMove)="onCameraMove($event)"
+      (indoorBuildingFocused)="onIndoorBuildingFocused($event)"
+      (indoorLevelActivated)="onIndoorLevelActivated($event)"
+    ></MapView> -->
+
     <Mapbox
-      accessToken="{{access_token}}"
-      mapStyle="{{style}}"
-      zoomLevel="10"
-      delay="10"
-      showUserLocation="false"
-      hideCompass="false"
-      hideAttribution="false"
-      hideLogo="false"
-      disableZoom="false"
-      disableRotation="false"
-      disableScroll="false"
-      disableTilt="false"
-      (mapReady)="onMapReady($event)">
-    </Mapbox>
+      [enableLocationRequest]="false"
+      [showUserLocation]="true"
+      [hideCompass]="false"
+      [hideAttribution]="true"
+      [hideLogo]="true"
+      [disableZoom]="false"
+      [disableRotation]="false"
+      [disableScroll]="false"
+      [disableTilt]="false"
+      (mapReady)="onMapReady($event)"
+      (moveEndEvent)="onCameraChanged($event)"
+    ></Mapbox>
+
   </ContentView>
 </StackLayout>
+<!-- </Page> -->

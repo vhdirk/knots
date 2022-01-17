@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nativescript_google_maps_api_key">AIzaSyCDW4_ZXrlBd2RTQmDVrCdRgCZHd_Fj77w</string>
+    <string name="nativescript_mapbox_api_key">pk.eyJ1IjoidmhkaXJrIiwiYSI6ImNrcGpzdm9pNTEwNTIyd284Z3Iwemo5OHkifQ.E2L37MEgZGa0jUrBj44U0w</string>
+</resources>

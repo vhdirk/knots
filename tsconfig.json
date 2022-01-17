@@ -10,6 +10,8 @@
     "skipLibCheck": true,
     "lib": ["es2017", "dom"],
     "baseUrl": ".",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "paths": {
       "~/*": ["src/*"],
       "@/*": ["src/*"]
@@ -21,7 +23,7 @@
     "strictInjectionParameters": true,
     "annotateForClosureCompiler": true
   },
-  "include": ["./src/**/*.ios.ts", "./src/**/*.android.ts"],
-  "files": ["./src/main.ts", "./references.d.ts", "./src/polyfills.ts"],
-  "exclude": ["node_modules", "platforms"]
+  "include": ["src/tests/**/*.ts", "src/**/*.ios.ts", "src/**/*.android.ts"],
+  "files": ["./src/main.ts", "./references.d.ts", "./src/polyfills.ts", "./src/app/workers/data-handler.worker.ts"],
+  "exclude": ["node_modules", "platforms", "e2e"]
 }

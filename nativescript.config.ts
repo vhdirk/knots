@@ -1,7 +1,7 @@
 import { NativeScriptConfig } from '@nativescript/core';
 
 export default {
-  id: 'org.nativescript.knots',
+  id: 'com.github.vhdirk.knots',
   appPath: 'src',
   appResourcesPath: 'App_Resources',
   android: {

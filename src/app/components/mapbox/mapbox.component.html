@@ -1,0 +1,23 @@
+
+<MapboxView
+  [accessToken]="accessToken"
+  [mapStyle]="mapStyle"
+  [latitude]="latitude"
+  [longitude]="longitude"
+  [zoomLevel]="zoomLevel"
+  [delay]="delay"
+  [showUserLocation]="showUserLocation"
+  [hideCompass]="hideCompass"
+  [hideAttribution]="hideAttribution"
+  [hideLogo]="hideLogo"
+  [disableZoom]="disableZoom"
+  [disableRotation]="disableRotation"
+  [disableScroll]="disableScroll"
+  [disableTilt]="disableTilt"
+  (mapReady)="onMapReady($event)"
+  (moveBeginEvent)="onMoveBeginEvent($event)"
+  (moveEndEvent)="onMoveEndEvent($event)"
+  (scrollEvent)="onScrollEvent($event)"
+  (locationPermissionGranted)="onLocationPermissionGranted($event)"
+  (locationPermissionDenied)="onLocationPermissionDenied($event)">
+</MapboxView>
