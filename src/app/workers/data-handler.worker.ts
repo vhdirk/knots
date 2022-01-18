@@ -16,7 +16,7 @@ import { Viewport } from "@nativescript-community/ui-mapbox";
 const context: Worker = self as any;
 
 const documents: Folder = <Folder>knownFolders.currentApp();
-const nodecyclerData: Folder = <Folder>documents.getFolder("nodecycler-data");
+const nodecyclerData: Folder = <Folder>documents.getFolder("assets");
 
 // Create actions stream
 const positions = new Subject<Position>();
@@ -27,17 +27,12 @@ let sentNetworks = [];
 //   positions.next(data);
 // });
 
-loadData();
+// loadData();
 
 context.onmessage = ({ data }) => {
   console.log('worker received', data, data.action == 'load');
 
   switch (data.action) {
-
-    case 'load': {
-      loadData();
-    }
-      break;
     case 'change-viewport': {
       console.log('worker received bounds', data.bounds);
       viewports.next(data);
@@ -47,8 +42,6 @@ context.onmessage = ({ data }) => {
       positions.next(data);
     }
       break;
-
-
   }
 
 };

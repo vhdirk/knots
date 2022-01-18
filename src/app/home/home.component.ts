@@ -20,15 +20,6 @@ import { LayerFactory, MapboxApi, MapboxViewApi } from '@nativescript-community/
 import { FeatureCollection } from 'geojson';
 import { NeighbourhoodStore } from '../services/neighbourhood.store';
 
-// import * as networkNodes from '~/assets/nodes.json';
-// import * as networkRoutes from '~/assets/routes.json';
-
-// Important - must register MapView plugin in order to use in Angular templates
-registerElement('MapView', () => MapView);
-
-
-const documents: Folder = <Folder>knownFolders.currentApp();
-const nodecyclerData: Folder = <Folder>documents.getFolder("nodecycler-data");
 
 @UntilDestroy()
 @Component({
@@ -40,16 +31,12 @@ export class HomeComponent implements OnInit {
   // MapStyle = MapStyle;
   public mapView: MapboxApi;
   public minZoomLevel = 10;
+  public color = '#5e7d50';
 
 
   public locationPermission$!: Observable<boolean>;
   public locationPermission: boolean = false;
 
-  // public nodeMarkers = [];
-  // public routeMarkers = [];
-  public color = '#5e7d50';
-
-  mapReady = new Subject<boolean>();
 
   constructor(public events: EventsService,
     public settingsService: SettingsService,
@@ -94,138 +81,9 @@ export class HomeComponent implements OnInit {
     this.neighbourhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighbourhood => {
       if (this.mapView) {
         this.drawNeighbourhood(neighbourhood);
-        // for (const marker of this.nodeMarkers) {
-        //   this.mapView.removeShape(marker);
-        // }
-
-
-        // this.drawNetworks(neighbourhood.networkIds);//.then(() => {
-        //   // this.drawNodes(neighbourhood.nodes);
-        // });
-
-
       }
     });
   }
-
-  // async drawAll(routes: FeatureCollection, nodes: FeatureCollection) {
-
-  //   console.log('drawing all', Object.keys(routes), Object.keys(nodes));
-
-  //   await this.mapView.addSource('routes', {
-  //     'type': 'geojson',
-  //     'data': routes
-  //   }).then((res) => console.log("loaded routes", res))
-  //     .catch((err) => console.log("error loading routes", err));
-
-  //   await this.mapView.addSource('nodes', {
-  //     'type': 'geojson',
-  //     'data': nodes
-  //   }).then((res) => console.log("loaded nodes", res))
-  //     .catch((err) => console.log("error loading nodes", err));
-
-
-
-
-  //   await this.mapView.addLayer({
-  //     'id': `node-circles`,
-  //     'type': 'circle',
-  //     'source': `nodes`,
-  //     'paint': {
-  //       'circle-radius': 10,
-  //       'circle-color': '#ffffff',
-  //       'circle-stroke-width': 2,
-  //       'circle-stroke-color': this.color,
-  //     },
-  //     // 'filter': ['==', '$type', 'Point']
-  //   });
-  //   // await this.mapView.addSource('routes', {
-  //   //   'type': 'geojson',
-  //   //   'data': `asset://files/app/nodecyclesr-data/routes.json` //`${routesFile.path}`
-  //   // }).then((res) => console.log("loaded routes", res))
-  //   //   .catch((err) => console.log("error loading routes", err));
-
-  //   // await this.mapView.addSource('nodes', {
-  //   //   'type': 'geojson',
-  //   //   'data': `${nodesFile.path}`
-  //   // })
-
-
-  //   await this.mapView.addLayer({
-  //     'id': 'route-lines',
-  //     'type': 'line',
-  //     'source': 'routes',
-  //     'paint': {
-  //       'line-color': this.color
-  //     },
-  //     // 'filter': ['==', '$type', 'LineString']
-  //   }).then((res) => console.log("layer routes", res))
-  //     .catch((err) => console.log("error layer routes", err));
-  // }
-
-  // async drawNetworks(networkIds: number[]) {
-  //   for (const networkId of networkIds) {
-
-  //     if (!this.routeMarkers.find(id => networkId === id)) {
-
-  //       const routesFile = nodecyclerData.getFile(`routes_${networkId}.json`);
-  //       let routesText = await routesFile.readText();
-  //       let routes = JSON.parse(routesText);
-
-  //       await this.mapView.addSource(`routes-${networkId}`, {
-  //         'type': 'geojson',
-  //         'data': `asset://routes_${networkId}.json`,
-  //       })
-
-  //       const nodesFile = nodecyclerData.getFile(`nodes_${networkId}.json`);
-  //       // let nodesText = await nodesFile.readText();
-  //       // let nodes = JSON.parse(nodesText);
-
-  //       await this.mapView.addSource(`nodes-${networkId}`, {
-  //         'type': 'geojson',
-  //         'data': `file://${nodesFile.path}`,
-  //       })
-
-  //       await this.mapView.addLayer({
-  //         'id': `routes-${networkId}-lines`,
-  //         'type': 'line',
-  //         'source': `routes-${networkId}`,
-  //         'paint': {
-  //           'line-color': this.color
-  //         },
-  //         // 'filter': ['==', '$type', 'LineString']
-  //       });
-
-  //       await this.mapView.addLayer({
-  //         'id': `nodes-${networkId}-circles`,
-  //         'type': 'circle',
-  //         'source': `nodes-${networkId}`,
-  //         'paint': {
-  //           'circle-radius': 10,
-  //           'circle-color': '#ffffff',
-  //           'circle-stroke-width': 2,
-  //           'circle-stroke-color': this.color,
-  //         },
-  //         // 'filter': ['==', '$type', 'Point']
-  //       });
-
-  //       // await this.mapView.addLayer({
-  //       //   'id': `nodes-${networkId}-text`,
-  //       //   'type': 'symbol',
-  //       //   'source': `nodes-${networkId}`,
-  //       //   'layout': {
-  //       //     'text-field': ['get', 'number'],
-  //       //     'text-allow-overlap': true,
-  //       //   },
-  //       //   'paint': {
-  //       //     'icon-color': this.color,
-  //       //   }
-  //       // });
-
-  //       this.routeMarkers.push(networkId);
-  //     }
-  //   }
-  // }
 
   async drawNeighbourhood(neighbourhood: NeighbourhoodState) {
     await this.drawRoutes(neighbourhood.routes, neighbourhood.networkIds);
@@ -240,13 +98,14 @@ export class HomeComponent implements OnInit {
 
       await this.mapView.addSource(sourceId, {
         'type': 'geojson',
-        'data': routeCollections,
+        'data': routeCollection,
       });
 
       await this.mapView.addLayer({
         'id': `${sourceId}-lines`,
         'type': 'line',
         'source': sourceId,
+        "minzoom": this.minZoomLevel,
         'paint': {
           'line-color': this.color
         },
@@ -258,48 +117,54 @@ export class HomeComponent implements OnInit {
 
   async drawNodes(nodeCollections: FeatureCollection[], networkIds: number[]) {
 
-    console.log('drawing nodes', networkIds);
-
     for (let i = 0; i < nodeCollections.length; i++) {
       const nodeCollection = nodeCollections[i];
       const networkId = networkIds[i];
+
+      const radius = 15;
 
       const sourceId = `nodes-${networkId}`;
       await this.mapView.addSource(sourceId, {
         'type': 'geojson',
         'data': nodeCollection,
-      });
-
-      await this.mapView.addLayer({
-        'id': `${sourceId}-text`,
-        'type': 'symbol',
-        'source': sourceId,
-        'layout': {
-          'text-field': ['get', 'number'],
-          'text-allow-overlap': true,
+        'cluster': {
+          'radius': radius,
+          'maxZoom': 20,
+          'properties': {
+            'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]]
+          }
         },
-        'paint': {
-          'icon-color': this.color,
-        }
-      }, `routes-${networkId}-lines`
-      );
+      });
 
       await this.mapView.addLayer({
         'id': `${sourceId}-circles`,
         'type': 'circle',
         'source': sourceId,
+        "minzoom": this.minZoomLevel,
         'paint': {
-          'circle-radius': 10,
+          'circle-radius': radius,
           'circle-color': '#ffffff',
-          'circle-stroke-width': 2,
+          'circle-stroke-width': 3,
           'circle-stroke-color': this.color,
         },
         // 'filter': ['==', '$type', 'Point']
-      }, `${sourceId}-text`);
+      }
+      );
+      await this.mapView.addLayer({
+        'id': `${sourceId}-text`,
+        'type': 'symbol',
+        'source': sourceId,
+        "minzoom": this.minZoomLevel,
+        'layout': {
+          'text-field': ['get', 'number'],
+          'text-allow-overlap': true,
+        },
 
-
-
-
+        'paint': {
+          'icon-color': this.color,
+        }
+      }
+      );
     }
   }
 
@@ -311,82 +176,12 @@ export class HomeComponent implements OnInit {
 
   async onMapReady($event) {
     this.mapView = $event;
-
-    this.mapReady.next(true);
-
-    const neighbourhood = this.neighbourhoodQuery.getValue();
-    if (neighbourhood.nodes && neighbourhood.routes) {
-      // this.drawAll(neighbourhood.routes, neighbourhood.nodes);
-    }
-
-    // console.log('routesFile.path', routesFile.path);
-
-    // await this.mapView.addSource('routes', {
-    //   'type': 'geojson',
-    //   'data': routes
-    // }).then((res) => console.log("loaded routes", res))
-    // .catch((err) => console.log("error loading routes", err));
-
-    // await this.mapView.addSource('routes', {
-    //   'type': 'geojson',
-    //   'data': `asset://files/app/nodecyclesr-data/routes.json` //`${routesFile.path}`
-    // }).then((res) => console.log("loaded routes", res))
-    //   .catch((err) => console.log("error loading routes", err));
-
-    // await this.mapView.addSource('nodes', {
-    //   'type': 'geojson',
-    //   'data': `${nodesFile.path}`
-    // })
-
-
-    // await this.mapView.addLayer({
-    //   'id': 'route-lines',
-    //   'type': 'line',
-    //   'source': 'routes',
-    //   'paint': {
-    //     'line-color': this.color
-    //   },
-    //     'filter': ['==', '$type', 'LineString']
-    // }).then((res) => console.log("layer routes", res))
-    //   .catch((err) => console.log("error layer routes", err));
-
-
-    // await this.mapView.addLayer({
-    //   'id': 'nodeCircles',
-    //   'type': 'circle',
-    //   'source': 'nodes',
-    //   'paint': {
-    //     'circle-radius': 10,
-    //     'circle-color': '#ffffff',
-    //     'circle-stroke-width': 2,
-    //     'circle-stroke-color': this.color,
-    //   }
-    // });
-
-    // await this.mapView.addLayer({
-    //   'id': `nodeLabels`,
-    //   'type': 'symbol',
-    //   'source': 'nodes',
-    //   'layout': {
-    //     // 'text-field': node.number,
-    //     'text-allow-overlap': true,
-    //   },
-    //   'paint': {
-    //     'icon-color': this.color,
-    //   }
-    // });
-
   }
 
   setupLocationControls() {
     if (!this.locationPermission || !this.mapView) {
       return;
     }
-
-    // this.mapView.settings.myLocationButtonEnabled = true;
-    // this.mapView.gMap.setMyLocationEnabled(true);
-
-    // geolocation.enableLocationRequest(true);
 
     const currentLocation = observableFrom(geolocation.getCurrentLocation({
       desiredAccuracy: CoreTypes.Accuracy.high,
@@ -438,6 +233,9 @@ export class HomeComponent implements OnInit {
 
   async onCameraChanged($event) {
     let viewport = await this.mapView.getViewport();
+
+    // TODO: hide layers based on zoomlevel
+
 
     if (viewport.zoomLevel < this.minZoomLevel) {
       return;
