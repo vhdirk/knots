@@ -3,14 +3,14 @@ import { Store, StoreConfig } from '@datorama/akita';
 import { FeatureCollection, LineString, Point } from 'geojson';
 
 
-export interface NeighbourhoodState {
+export interface NeighborhoodState {
   networkIds: number[];
   nodes: FeatureCollection<Point>[];
   routes: FeatureCollection<LineString>[];
 }
 
 
-export function createInitialState(): NeighbourhoodState {
+export function createInitialState(): NeighborhoodState {
   return {
     networkIds: [],
     nodes: null,
@@ -20,10 +20,10 @@ export function createInitialState(): NeighbourhoodState {
 
 @Injectable({ providedIn: 'root' })
 @StoreConfig({
-  name: 'neighbourhood',
+  name: 'neighborhood',
   resettable: true,
 })
-export class NeighbourhoodStore extends Store<NeighbourhoodState>{
+export class NeighborhoodStore extends Store<NeighborhoodState>{
   constructor() {
     super(createInitialState());
   }

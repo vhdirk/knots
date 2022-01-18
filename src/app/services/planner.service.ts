@@ -5,8 +5,8 @@ import { map, withLatestFrom } from 'rxjs/operators';
 import { nearestPointOnLine } from '@turf/turf';
 import { Route } from '../route.types';
 import { NearestPointOnLine } from '@turf/nearest-point-on-line';
-import { NeighbourhoodStore } from './neighbourhood.store';
-import { NeighbourhoodState, Position } from '../neighborhood.types';
+import { NeighborhoodState, NeighborhoodStore } from './neighborhood.store';
+import { Position } from '../neighborhood.types';
 import {WorkerService} from './worker.service';
 import { Viewport } from '@nativescript-community/ui-mapbox';
 // const selectNodes = (state: AppState) => state.neighborhood.nodes;
@@ -33,19 +33,9 @@ import { Viewport } from '@nativescript-community/ui-mapbox';
 @Injectable({
   providedIn: 'root'
 })
-export class NeighbourhoodService {
+export class PlannerService {
   constructor(protected worker: WorkerService) {
   }
 
-
-  setCameraView(position: Position) {
-      this.worker.setPosition(position);
-
-  }
-
-  setViewport(viewport: Viewport) {
-    this.worker.setViewport(viewport);
-
-  }
 }
 

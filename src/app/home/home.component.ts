@@ -3,14 +3,14 @@ import { Component, OnInit } from '@angular/core'
 import { Application} from '@nativescript/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Feature, FeatureCollection } from 'geojson';
-import { MapboxApi, MapStyle } from '@nativescript-community/ui-mapbox';
+import { MapboxApi, MapboxMarker, MapStyle } from '@nativescript-community/ui-mapbox';
 import { RadSideDrawer } from 'nativescript-ui-sidedrawer';
 import { EventsService } from '../services/events.service';
 import { SettingsService } from '../services/settings.service';
 import { PermissionsService, PERMISSIONS } from '../services/permissions.service';
-import { NeighbourhoodQuery } from '../services/neighbourhood.query';
-import { NeighbourhoodService } from '../services/neighbourhood.service';
-import { NeighbourhoodState } from '../services/neighbourhood.store';
+import { NeighborhoodQuery } from '../services/neighborhood.query';
+import { NeighborhoodService } from '../services/neighborhood.service';
+import { NeighborhoodState } from '../services/neighborhood.store';
 
 
 @UntilDestroy()
@@ -35,8 +35,8 @@ export class HomeComponent implements OnInit {
   constructor(public events: EventsService,
     public settingsService: SettingsService,
     public permissionsService: PermissionsService,
-    public neighbourhoodQuery: NeighbourhoodQuery,
-    public neighbourhoodService: NeighbourhoodService) {
+    public neighborhoodQuery: NeighborhoodQuery,
+    public neighborhoodService: NeighborhoodService) {
   }
 
   ngOnInit(): void {
@@ -50,16 +50,16 @@ export class HomeComponent implements OnInit {
       this.locationPermission = permission;
     });
 
-     this.neighbourhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighbourhood => {
+     this.neighborhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighborhood => {
       if (this.mapView) {
-        this.drawNeighbourhood(neighbourhood);
+        this.drawNeighborhood(neighborhood);
       }
     });
   }
 
-  async drawNeighbourhood(neighbourhood: NeighbourhoodState) {
-    await this.drawRoutes(neighbourhood.routes, neighbourhood.networkIds);
-    await this.drawNodes(neighbourhood.nodes, neighbourhood.networkIds);
+  async drawNeighborhood(neighborhood: NeighborhoodState) {
+    await this.drawRoutes(neighborhood.routes, neighborhood.networkIds);
+    await this.drawNodes(neighborhood.nodes, neighborhood.networkIds);
   }
 
   async drawRoutes(routeCollections: FeatureCollection[], networkIds: number[]) {
@@ -119,7 +119,6 @@ export class HomeComponent implements OnInit {
           'circle-stroke-width': this.nodeStrokeWidth,
           'circle-stroke-color': this.nodeColor,
         },
-        // 'filter': ['==', '$type', 'Point']
       }
       );
       this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
@@ -162,13 +161,34 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    this.neighbourhoodService.setViewport(viewport);
+    this.neighborhoodService.setViewport(viewport);
   }
 
   onMapClick($event: Feature[], networkId: number): void {
     console.log("onMapClick:", $event, networkId);
+    const feature = $event[0];
+
+    if (feature.geometry.type !== 'Point') {
+      return;
+    }
+
+    this.mapView.addMarkers([
+      {
+        id: feature.properties.number,
+        title: feature.properties.number,
+        lat: feature.geometry.coordinates[1],
+        lng: feature.geometry.coordinates[0],
+      }
+    ]);
   }
 
+  goBack() {
+
+  }
+
+  openSettings() {
+
+  }
 
 }
 

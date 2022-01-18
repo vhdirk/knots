@@ -1,11 +1,7 @@
-import { Observable, of as observableOf, from as observableFrom } from "rxjs";
 import { Injectable } from "@angular/core";
-import { hasPermission, requestPermission } from "nativescript-permissions";
-import { NeighbourhoodStore } from "./neighbourhood.store";
-import { Position } from "../neighborhood.types";
+import { NeighborhoodStore } from "./neighborhood.store";
 import { Viewport } from '@nativescript-community/ui-mapbox';
-import { NeighbourhoodService } from "./neighbourhood.service";
-import { NeighbourhoodQuery } from "./neighbourhood.query";
+import { NeighborhoodQuery } from "./neighborhood.query";
 
 export { PERMISSIONS } from "nativescript-permissions";
 
@@ -15,21 +11,18 @@ export { PERMISSIONS } from "nativescript-permissions";
 export class WorkerService {
 
   worker: Worker;
-  constructor(protected neighbourhoodStore: NeighbourhoodStore, protected neighbourhoodQuery: NeighbourhoodQuery) { }
+  constructor(protected neighborhoodStore: NeighborhoodStore, protected neighborhoodQuery: NeighborhoodQuery) { }
 
 
   setup() {
     this.worker = new Worker('../workers/data-handler.worker');
-    // this.worker.postMessage({ action: 'load'});
     this.worker.onerror = (err) => {
       console.error(err);
     };
     this.worker.onmessage = ({ data }) => {
       console.log("received data from worker");
       if (data.hasOwnProperty('nodes')) {
-        // this.neighbourhoodStore.upsertMany;
-        this.neighbourhoodStore.update(state => data);
-        // this.neighbourhoodQuery.neighbourhoods$.next(data);
+        this.neighborhoodStore.update(state => data);
       }
       // if (data.hasOwnProperty('position')) {
       //   this.store.dispatch(setPosition({ position: data.position }));
@@ -47,10 +40,6 @@ export class WorkerService {
     //   worker.postMessage(location);
     // });
 
-  }
-
-  setPosition(position: Position) {
-    this.worker.postMessage({ action: 'change-position', ...position});
   }
 
   setViewport(viewport: Viewport) {

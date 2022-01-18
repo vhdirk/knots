@@ -6,7 +6,7 @@ import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { EventsService } from './services/events.service';
 import { SettingsService } from './services/settings.service';
-import { NeighbourhoodStore } from './services/neighbourhood.store';
+import { NeighborhoodStore } from './services/neighborhood.store';
 import { WorkerService } from './services/worker.service'
 
 @NgModule({
