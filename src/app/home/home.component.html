@@ -6,43 +6,14 @@
     <Label class="fas" text="&#xf0c9;" (tap)="onDrawerButtonTap()"></Label>
   </GridLayout>
 </ActionBar>
-<!--
+
 <StackLayout height="100%" width="100%">
   <ContentView height="100%" width="100%">
-
-  </ContentView>
-</StackLayout> -->
-
-<!-- <Page
-    xmlns="http://www.nativescript.org/tns.xsd"
-    xmlns:maps="nativescript-google-maps-sdk"
-> -->
-<StackLayout height="100%" width="100%">
-  <ContentView height="100%" width="100%">
-    <!-- <MapView
-      #mapView
-      (mapReady)="onMapReady($event)"
-      (myLocationTapped)="onMyLocationTapped($event)"
-      (coordinateTapped)="onCoordinateTapped($event)"
-      (coordinateLongPress)="onCoordinateLongPress($event)"
-      (markerSelect)="onMarkerSelect($event)"
-      (markerBeginDragging)="onMarkerBeginDragging($event)"
-      (markerEndDragging)="onMarkerEndDragging($event)"
-      (markerDrag)="onMarkerDrag($event)"
-      (markerInfoWindowTapped)="onMarkerInfoWindowTapped($event)"
-      (markerInfoWindowClosed)="onMarkerInfoWindowClosed($event)"
-      (shapeSelect)="onShapeSelect($event)"
-      (cameraChanged)="onCameraChanged($event)"
-      (cameraMove)="onCameraMove($event)"
-      (indoorBuildingFocused)="onIndoorBuildingFocused($event)"
-      (indoorLevelActivated)="onIndoorLevelActivated($event)"
-    ></MapView> -->
-
     <Mapbox
       [enableLocationRequest]="false"
       [showUserLocation]="true"
       [hideCompass]="false"
-      [hideAttribution]="true"
+      [hideAttribution]="false"
       [hideLogo]="true"
       [disableZoom]="false"
       [disableRotation]="false"
@@ -54,4 +25,3 @@
 
   </ContentView>
 </StackLayout>
-<!-- </Page> -->

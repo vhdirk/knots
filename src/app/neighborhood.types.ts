@@ -1,6 +1,4 @@
-import { EntityState } from '@datorama/akita';
-import { Feature, FeatureCollection, LineString, Point } from 'geojson';
-import {Route} from './route.types';
+import { Feature, Point } from 'geojson';
 
 export interface NodeConnection {
   id: string;
@@ -23,13 +21,6 @@ export interface Node extends Feature<Point> {
     location: [number, number];
   };
 }
-
-export interface NeighbourhoodState {
-  networkIds: number[];
-  nodes: FeatureCollection<Point>[];
-  routes: FeatureCollection<LineString>[];
-}
-
 
 export interface Position {
   coordinate: [number, number],

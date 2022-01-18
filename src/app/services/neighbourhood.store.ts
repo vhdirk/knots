@@ -1,6 +1,14 @@
 import { Injectable } from "@angular/core";
-import { EntityStore, Store, StoreConfig } from '@datorama/akita';
-import { NeighbourhoodState } from '../neighborhood.types';
+import { Store, StoreConfig } from '@datorama/akita';
+import { FeatureCollection, LineString, Point } from 'geojson';
+
+
+export interface NeighbourhoodState {
+  networkIds: number[];
+  nodes: FeatureCollection<Point>[];
+  routes: FeatureCollection<LineString>[];
+}
+
 
 export function createInitialState(): NeighbourhoodState {
   return {
