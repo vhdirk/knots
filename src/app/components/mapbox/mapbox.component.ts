@@ -1,6 +1,6 @@
 import { BehaviorSubject } from 'rxjs'
 import { ChangeDetectionStrategy, Component, EventEmitter, HostListener, Inject, InjectionToken, Input, OnDestroy, OnInit, Optional, Output, ViewChild, ViewContainerRef, ViewEncapsulation } from '@angular/core'
-import { Mapbox, MapboxViewApi, MapStyle } from '@nativescript-community/ui-mapbox'
+import { LatLng, Mapbox, MapboxViewApi, MapStyle } from '@nativescript-community/ui-mapbox'
 import * as geolocation from '@nativescript/geolocation'
 import { registerElement } from "@nativescript/angular";
 import { EventsService } from '../../services/events.service'
@@ -34,9 +34,16 @@ export class MapboxComponent implements OnInit {
   @Input() disableTilt = false;
 
   @Output() mapReady = new EventEmitter<MapboxViewApi>();
-  @Output() moveBeginEvent = new EventEmitter<any>();
-  @Output() moveEndEvent = new EventEmitter<any>();
-  @Output() scrollEvent = new EventEmitter<any>();
+  @Output() moveBegin = new EventEmitter<LatLng>();
+  @Output() moveEnd = new EventEmitter<any>();
+  @Output() scroll = new EventEmitter<any>();
+  @Output() mapClick = new EventEmitter<LatLng>();
+  @Output() mapLongClick = new EventEmitter<LatLng>();
+  @Output() fling = new EventEmitter<void>();
+  @Output() cameraMove = new EventEmitter<{reason: any,animated?:boolean}>();
+  @Output() cameraMoveCancel = new EventEmitter<any>();
+  @Output() cameraIdle = new EventEmitter<any>();
+
   @Output() locationPermissionGranted = new EventEmitter<MapboxViewApi>();
   @Output() locationPermissionDenied = new EventEmitter<MapboxViewApi>();
 
@@ -208,8 +215,47 @@ export class MapboxComponent implements OnInit {
     this.ready$.next(true);
     this.mapReady.emit(event.map);
 
-    console.log("MapComponent:onMapReady(): after declareReady()");
+    this.mapboxView.setOnMoveBeginListener((data: LatLng) => {
+      this.moveBegin.emit(data);
+    });
 
+    // this.mapboxView.setOnMoveEndListener((data: LatLng) => {
+    //   this.moveEnd.emit(data);
+    // });
+
+    this.mapboxView.setOnScrollListener((data: LatLng) => {
+      this.scroll.emit(data);
+    });
+
+    this.mapboxView.setOnMapClickListener((data: LatLng) => {
+      this.mapClick.emit(data);
+      return true;
+    });
+
+    this.mapboxView.setOnMapLongClickListener((data: LatLng) => {
+      this.mapLongClick.emit(data);
+      return true;
+    });
+
+    this.mapboxView.setOnScrollListener((data: LatLng) => {
+      this.scroll.emit(data);
+    });
+
+    this.mapboxView.setOnFlingListener(() => {
+      this.fling.emit();
+    });
+
+    this.mapboxView.setOnCameraMoveListener((reason: any, animated?: boolean) => {
+      this.cameraMove.emit({reason, animated});
+    });
+
+    this.mapboxView.setOnCameraMoveCancelListener(() => {
+      this.cameraMoveCancel.emit();
+    });
+
+    this.mapboxView.setOnCameraIdleListener(() => {
+      this.cameraIdle.emit();
+    });
   }
 
   @HostListener("unloaded")
@@ -237,15 +283,40 @@ export class MapboxComponent implements OnInit {
 
   onMoveBeginEvent(event) {
     // console.log("MapComponent:onMoveBeginEvent():", event);
-    this.moveBeginEvent.emit(event.map);
+    this.moveBegin.emit(event.map);
   }
 
   onMoveEndEvent(event) {
-    this.moveEndEvent.emit(event);
+    this.moveEnd.emit(event);
   }
 
   onScrollEvent(event) {
     // console.log("MapComponent:onScrollEvent():", event);
-    this.scrollEvent.emit(event.map);
+    this.scroll.emit(event.map);
   }
+
+  onMapClickEvent(event) {
+    this.mapClick.emit(event);
+  }
+
+  onMapLongClickEvent(event) {
+    this.mapLongClick.emit(event);
+  }
+
+  onFlingEvent(event) {
+    this.fling.emit(event);
+  }
+
+  onCameraMoveEvent(event) {
+    this.cameraMove.emit(event);
+  }
+
+  onCameraMoveCancelEvent(event) {
+    this.cameraMoveCancel.emit(event);
+  }
+
+  onCameraIdleEvent(event) {
+    this.cameraIdle.emit(event);
+  }
+
 }

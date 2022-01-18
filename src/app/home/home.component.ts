@@ -131,10 +131,12 @@ export class HomeComponent implements OnInit {
           'radius': radius,
           'maxZoom': 20,
           'properties': {
-            'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]]
+            'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]],
+            'connections': [["coalesce", ["accumulated"], ["get", "connections"]], ["get", "connections"]]
           }
         },
       });
+
 
       await this.mapView.addLayer({
         'id': `${sourceId}-circles`,
@@ -150,6 +152,11 @@ export class HomeComponent implements OnInit {
         // 'filter': ['==', '$type', 'Point']
       }
       );
+      this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
+        this.onMapClick(event, networkId);
+      } );
+
+
       await this.mapView.addLayer({
         'id': `${sourceId}-text`,
         'type': 'symbol',
@@ -176,6 +183,7 @@ export class HomeComponent implements OnInit {
 
   async onMapReady($event) {
     this.mapView = $event;
+
   }
 
   setupLocationControls() {
@@ -244,8 +252,8 @@ export class HomeComponent implements OnInit {
     this.neighbourhoodService.setViewport(viewport);
   }
 
-  onCameraMove($event) {
-    // //console.log("onCameraMove:", $event);
+  onMapClick($event, id) {
+    console.log("onMapClick:", $event);
   }
 
   onIndoorBuildingFocused($event) {
