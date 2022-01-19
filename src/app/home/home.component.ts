@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core'
 import { Application} from '@nativescript/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Feature, FeatureCollection } from 'geojson';
-import { MapboxApi, MapboxMarker, MapStyle } from '@nativescript-community/ui-mapbox';
+import { MapboxApi, MapStyle } from '@nativescript-community/ui-mapbox';
 import { RadSideDrawer } from 'nativescript-ui-sidedrawer';
 import { EventsService } from '../services/events.service';
 import { SettingsService } from '../services/settings.service';
@@ -180,6 +180,8 @@ export class HomeComponent implements OnInit {
         lng: feature.geometry.coordinates[0],
       }
     ]);
+
+
   }
 
   goBack() {
