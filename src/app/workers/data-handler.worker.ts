@@ -5,13 +5,14 @@ import { distinctUntilChanged, filter, flatMap, map, pairwise, publishReplay, sc
 import { Http } from '@nativescript/core'
 import * as turf from '@turf/turf';
 import { feature, lineDistance, lineSlice, lineString, nearestPointOnLine } from '@turf/turf';
-import { Feature, FeatureCollection, LineString, Polygon } from 'geojson';
+import { Feature, FeatureCollection, LineString, Polygon, Point } from 'geojson';
 import { Node, Position } from '../neighborhood.types';
 import { Destination, Route } from '../route.types';
 import { networkIsCloseEnough } from '../constants';
-
 import { knownFolders, Folder, File } from '@nativescript/core';
 import { Viewport } from "@nativescript-community/ui-mapbox";
+import { PathFinder } from '../path-finder/path-finder';
+import { extendNodeMap, NodeMap, RouteMap } from "../path-finder/node-map";
 
 const context: Worker = self as any;
 
@@ -26,18 +27,13 @@ function uniqueArray(arrArg: any[]): any[] {
 
 // Create actions stream
 const viewports = new Subject<Viewport>();
+const paths = new Subject<[string, string]>();
 
 let discoveredNetworks = [];
 
 // keep all loaded nodes and routes in memory. Whatever is not loaded is not taken into consideration while finding the shortest route
-let discoveredNodes = {
-  'type': 'FeatureCollection',
-  'features': []
-};
-let discoveredRoutes = {
-  'type': 'FeatureCollection',
-  'features': []
-};
+let discoveredNodes: NodeMap = {};
+let discoveredRoutes: RouteMap = {};
 
 context.onmessage = ({ data }) => {
   switch (data.action) {
@@ -45,11 +41,10 @@ context.onmessage = ({ data }) => {
       console.log('worker received bounds', data.bounds);
       viewports.next(data);
     }
-    break;
-    case 'find-route': {
-
+      break;
+    case 'find-path': {
       // find route from start node to destination node
-
+      paths.next([data.start, data.end]);
       break;
     }
   }
@@ -75,30 +70,17 @@ function fetchObject<T>(filename: string): Observable<T> {
   return obs;
 }
 
-function loadData() {
-  //fetchObject<FeatureCollection>('routes.json'),
-  forkJoin([fetchObject<FeatureCollection>('routes'), fetchObject<FeatureCollection>('nodes')]).pipe(
-    map(res => {
-      console.log('loaded routes', Object.keys(res));
-      return { routes: res[0], nodes: res[1] };
-    }
-    )).subscribe(data => {
-      console.log("loaded data", Object.keys(data));
-      context.postMessage(data);
-    });
-}
-
 // Fetch network
-function fetchNetworks(): Observable<FeatureCollection> {
-  return fetchObject<FeatureCollection>('networks');
+function fetchNetworks(): Observable<FeatureCollection<Polygon>> {
+  return fetchObject<FeatureCollection<Polygon>>('networks');
 }
 
-function fetchNodes(networkIds: number[]): Observable<FeatureCollection[]> {
-  return forkJoin(networkIds.map(network => fetchObject<FeatureCollection>(`nodes_${network}`)));
+function fetchNodes(networkIds: number[]): Observable<FeatureCollection<Point>[]> {
+  return forkJoin(networkIds.map(network => fetchObject<FeatureCollection<Point>>(`nodes_${network}`)));
 }
 
-function fetchRoutes(networkIds: number[]): Observable<FeatureCollection[]> {
-  return forkJoin(networkIds.map(network => fetchObject<FeatureCollection>(`routes_${network}`)));
+function fetchRoutes(networkIds: number[]): Observable<FeatureCollection<LineString>[]> {
+  return forkJoin(networkIds.map(network => fetchObject<FeatureCollection<LineString>>(`routes_${network}`)));
 }
 
 function getNetworksInViewport(viewport: Viewport): Observable<number[]> {
@@ -117,41 +99,6 @@ function getNetworksInViewport(viewport: Viewport): Observable<number[]> {
         // console.log('nearby networks', ret);
         return ret;
       }));
-}
-
-
-function getActiveRoute(routes: Route[], position: Position): Route {
-  const result = routes
-    .map(feature => {
-      return {
-        route: feature,
-        point: nearestPointOnLine(feature.geometry, position.coordinate, { units: 'meters' }),
-      };
-    })
-    .sort((a, b) => a.point.properties.dist - b.point.properties.dist)
-    .shift();
-  return result && result.point.properties.dist < 20 ? result.route : null;
-}
-
-function calculateRouteProgress(route: Feature<LineString>, position: Position) {
-  if (!route || !position) {
-    return null;
-  }
-  const slicedLine = lineSlice(route.geometry.coordinates[0], position.coordinate, lineString(route.geometry.coordinates));
-  return lineDistance(slicedLine, { units: 'meters' });
-}
-
-function calculateDestinationAndProgress(route: Route, prevCoords: Position, nextCoords: Position): [string, number] {
-  const prevProgress = calculateRouteProgress(route, prevCoords);
-  const nextProgress = calculateRouteProgress(route, nextCoords);
-  if (!prevProgress || !nextProgress) {
-    return null;
-  }
-  if (prevProgress < nextProgress) {
-    return [route.properties.end_geoid, nextProgress];
-  } else {
-    return [route.properties.begin_geoid, route.properties.distance - nextProgress];
-  }
 }
 
 const viewport$: Observable<Viewport> = viewports.asObservable();
@@ -176,7 +123,7 @@ const neighborhood$ = debouncedViewport$.pipe(
   switchMap(position => getNetworksInViewport(position).pipe(
     map(networkIds => networkIds.filter(id => !discoveredNetworks.find(fid => fid === id))),
     switchMap(networkIds => zip(fetchNodes(networkIds), fetchRoutes(networkIds), observableOf(networkIds))),
-    map(([nodes, routes, networkIds]: [FeatureCollection[], FeatureCollection[], number[]]) => {
+    map(([nodes, routes, networkIds]: [FeatureCollection<Point>[], FeatureCollection<LineString>[], number[]]) => {
       // const nodesCloseBy = nodes.filter(node => turf.distance(node.location, position.coordinate, { units: 'meters' }) < 5000);
       // const connections = [].concat.apply([], nodesCloseBy.map(node => node.connections))
       //   .map(connection => connection.route);
@@ -188,47 +135,6 @@ const neighborhood$ = debouncedViewport$.pipe(
   ))
 );
 
-// const activeRoute$: Observable<Route> = combineLatest([position$, neighborhood$]).pipe(
-//   map(([position, { routes }]) => getActiveRoute(routes, position)),
-//   distinctUntilChanged((prev, curr) => {
-//     const prevPid = prev ? prev.properties.pid : null;
-//     const currPid = curr ? curr.properties.pid : null;
-//     return prevPid === currPid;
-//   }),
-// );
-
-// const destinationNode$ = position$.pipe(
-//   pairwise(),
-//   withLatestFrom(activeRoute$),
-//   map(([[prevPosition, currPosition], route]) => calculateDestinationAndProgress(route, prevPosition, currPosition)),
-//   withLatestFrom(neighborhood$),
-//   map(([result, { nodes }]): Destination => {
-//     if (!result) {
-//       return null;
-//     }
-//     return {
-//       node: nodes.find(node => node.id === result[0]),
-//       progress: result[1]
-//     };
-//   }),
-//   distinctUntilChanged((prev, curr) => {
-//     if (!prev || !curr) {
-//       return prev === curr;
-//     }
-//     const prevPid = prev ? prev.node.id : null;
-//     const currPid = curr ? curr.node.id : null;
-//     return prevPid === currPid && prev.progress === curr.progress;
-//   }),
-// );
-
-// const improvedPosition$ = combineLatest([position$, activeRoute$]).pipe(
-//   map(([position, activeRoute]) => {
-//     if (!activeRoute) {
-//       return position;
-//     }
-//     return nearestPointOnLine(activeRoute, position.coordinate).geometry.coordinates;
-//   }),
-// );
 
 // Subscribers to post data back to app
 neighborhood$.subscribe(({ nodes, routes, networkIds }) => {
@@ -239,19 +145,45 @@ neighborhood$.subscribe(({ nodes, routes, networkIds }) => {
   discoveredNetworks = uniqueArray([...discoveredNetworks, ...networkIds]);
 
   // add nodes to discovered nodes
-  discoveredNodes.features = uniqueArray([...discoveredNodes.features, ...nodes.map(node => node.features).flat()]);
+  for (const nodeCollection of nodes) {
+    for (const node of nodeCollection.features) {
+      discoveredNodes[node.properties.id] = node;
+    }
+  }
 
-  // add nodes to discovered nodes
-  discoveredRoutes.features = uniqueArray([...discoveredRoutes.features, ...routes.map(route => route.features).flat()]);
+  for (const routeCollection of routes) {
+    for (const route of routeCollection.features) {
+      discoveredRoutes[route.properties.id] = route;
+    }
+  }
+
 });
 
-// activeRoute$.subscribe(activeRoute => {
-//   context.postMessage({ activeRoute });
-// });
-// destinationNode$.subscribe(destinationNode => {
-//   context.postMessage({ destinationNode });
-// });
-// improvedPosition$.subscribe((position) => {
-//   context.postMessage({ position });
-// });
+const path$: Observable<[string, string]> = paths.asObservable();
+
+
+const debouncedPath$ = path$.pipe(
+  filter(([start, end]) => start !== end),
+  distinctUntilChanged(),
+);
+
+debouncedPath$.subscribe(([start, end]) => {
+  const pathFinder = new PathFinder(discoveredNodes);
+
+  const path = pathFinder.findPath(start, end);
+  const nodeIds = path[1];
+
+  // Find the route that lays between each pair of nodes. It's probably better to find the route id based
+  const routeIds = nodeIds.length <= 1 ? [] : nodeIds.slice(1, nodeIds.length).map((currNodeId, index) => {
+    const prevNodeId = nodeIds[index - 1];
+    const currNode = discoveredNodes[currNodeId];
+    const connection = currNode.properties.connections.find((connection) => connection.id === prevNodeId);
+    return connection.id;
+  });
+
+
+  context.postMessage({
+    response: 'path', distance: path[0], nodes: nodeIds, routes: routeIds
+  });
+})
 

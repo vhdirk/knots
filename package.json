@@ -10,6 +10,9 @@
   "publishConfig": {
     "access": "public"
   },
+  "scripts": {
+    "test": "jest"
+  },
   "files": [
     "App_Resources",
     "hooks",
@@ -53,6 +56,7 @@
     "@nativescript/core": "~8.1.5",
     "@nativescript/geolocation": "^8.0.2",
     "@nativescript/theme": "~3.0.2",
+    "@nativescript/unit-test-runner": "^3.0.2",
     "@ngneat/until-destroy": "^9.0.0",
     "@turf/turf": "^6.5.0",
     "geojson": "^0.5.0",
@@ -70,16 +74,25 @@
     "@angular-devkit/build-angular": "~13.1.1",
     "@angular/cli": "^13.1.2",
     "@angular/compiler-cli": "~13.1.1",
+    "@jsdevtools/coverage-istanbul-loader": "3.0.5",
     "@nativescript/android": "8.1.1",
     "@nativescript/schematics": "^11.2.0",
     "@nativescript/types": "~8.1.1",
     "@nativescript/webpack": "5.0.4",
     "@ngtools/webpack": "~13.1.2",
     "@types/geojson": "^7946.0.8",
+    "@types/jasmine": "3.10.2",
     "copy-webpack-plugin": "^10.2.0",
+    "jest": "^27.4.7",
+    "karma": "6.3.11",
+    "karma-coverage": "2.0.3",
+    "karma-jasmine": "4.0.1",
+    "karma-nativescript-launcher": "0.4.0",
     "nativescript-dev-assets": "^0.0.7",
     "nativescript-worker-loader": "^0.12.1",
+    "nyc": "15.1.0",
     "ts-loader": "^9.2.6",
+    "ts-node": "^10.4.0",
     "typescript": "~4.4.4"
   },
   "private": "true",

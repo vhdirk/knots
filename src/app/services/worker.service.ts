@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { NeighborhoodStore } from "./neighborhood.store";
-import { Viewport } from '@nativescript-community/ui-mapbox';
-import { NeighborhoodQuery } from "./neighborhood.query";
+import { Feature, Viewport } from '@nativescript-community/ui-mapbox';
+import { PathStore } from "./path.store";
 
 export { PERMISSIONS } from "nativescript-permissions";
 
@@ -11,7 +11,8 @@ export { PERMISSIONS } from "nativescript-permissions";
 export class WorkerService {
 
   worker: Worker;
-  constructor(protected neighborhoodStore: NeighborhoodStore, protected neighborhoodQuery: NeighborhoodQuery) { }
+  constructor(protected neighborhoodStore: NeighborhoodStore,
+              protected pathStore: PathStore) { }
 
 
   setup() {
@@ -21,9 +22,17 @@ export class WorkerService {
     };
     this.worker.onmessage = ({ data }) => {
       console.log("received data from worker");
-      if (data.hasOwnProperty('nodes')) {
+      if (data.response === 'neighborhood') {
         this.neighborhoodStore.update(state => data);
+        this.neighborhoodStore.setLoading(false);
       }
+
+      if (data.response === 'path') {
+        this.pathStore.update(state => data);
+        this.pathStore.setLoading(false);
+      }
+
+
       // if (data.hasOwnProperty('position')) {
       //   this.store.dispatch(setPosition({ position: data.position }));
       // }
@@ -46,6 +55,11 @@ export class WorkerService {
     console.log('setViewport', viewport);
     this.worker.postMessage({ action: 'change-viewport', ...viewport});
   }
+
+  findPath(start: string, end: string) {
+    this.worker.postMessage({ action: 'find-path', start, end });
+  }
+
 }
 
 

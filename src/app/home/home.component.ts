@@ -1,6 +1,6 @@
 import { Observable } from 'rxjs'
 import { Component, OnInit } from '@angular/core'
-import { Application} from '@nativescript/core';
+import { Application } from '@nativescript/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Feature, FeatureCollection } from 'geojson';
 import { MapboxApi, MapStyle } from '@nativescript-community/ui-mapbox';
@@ -12,6 +12,9 @@ import { NeighborhoodQuery } from '../services/neighborhood.query';
 import { NeighborhoodService } from '../services/neighborhood.service';
 import { NeighborhoodState } from '../services/neighborhood.store';
 
+import { PathQuery } from '../services/path.query';
+import { PathService } from '../services/path.service';
+import { PathState } from '../services/path.store';
 
 @UntilDestroy()
 @Component({
@@ -32,11 +35,16 @@ export class HomeComponent implements OnInit {
   public locationPermission$!: Observable<boolean>;
   public locationPermission: boolean = false;
 
+  public nodes: Feature[] = [];
+
   constructor(public events: EventsService,
     public settingsService: SettingsService,
     public permissionsService: PermissionsService,
     public neighborhoodQuery: NeighborhoodQuery,
-    public neighborhoodService: NeighborhoodService) {
+    public neighborhoodService: NeighborhoodService,
+    public pathQuery: PathQuery,
+    public pathService: PathService) {
+
   }
 
   ngOnInit(): void {
@@ -50,9 +58,15 @@ export class HomeComponent implements OnInit {
       this.locationPermission = permission;
     });
 
-     this.neighborhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighborhood => {
+    this.neighborhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighborhood => {
       if (this.mapView) {
         this.drawNeighborhood(neighborhood);
+      }
+    });
+
+    this.pathQuery.select().pipe(untilDestroyed(this)).subscribe(pathState => {
+      if (this.mapView) {
+        this.drawPath(pathState);
       }
     });
   }
@@ -123,7 +137,7 @@ export class HomeComponent implements OnInit {
       );
       this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
         this.onMapClick(event, networkId);
-      } );
+      });
 
 
       await this.mapView.addLayer({
@@ -142,6 +156,10 @@ export class HomeComponent implements OnInit {
       }
       );
     }
+  }
+
+  async drawPath(pathState: PathState) {
+
   }
 
   onDrawerButtonTap(): void {
@@ -181,6 +199,7 @@ export class HomeComponent implements OnInit {
       }
     ]);
 
+    this.pathService.addDestination(feature);
 
   }
 
