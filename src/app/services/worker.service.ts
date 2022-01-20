@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { NeighborhoodStore } from "./neighborhood.store";
-import { Feature, Viewport } from '@nativescript-community/ui-mapbox';
-import { PathStore } from "./path.store";
+import { Viewport } from '@nativescript-community/ui-mapbox';
+import { PathState, PathStore } from "./path.store";
 
 export { PERMISSIONS } from "nativescript-permissions";
 
@@ -21,38 +21,31 @@ export class WorkerService {
       console.error(err);
     };
     this.worker.onmessage = ({ data }) => {
-      console.log("received data from worker");
+      console.log("received data from worker", data.response);
       if (data.response === 'neighborhood') {
         this.neighborhoodStore.update(state => data);
         this.neighborhoodStore.setLoading(false);
       }
 
       if (data.response === 'path') {
-        this.pathStore.update(state => data);
-        this.pathStore.setLoading(false);
+        if (data.error) {
+          this.pathStore.setError({'code': data.error});
+        } else {
+          console.log('received routes', data.routes.length);
+          this.pathStore.setLoading(false);
+          this.pathStore.update(state => {
+            const newState: PathState = {
+              start: state.start,
+              paths: [...state.paths, data]
+            }
+            return newState;
+          });
+        }
       }
-
-
-      // if (data.hasOwnProperty('position')) {
-      //   this.store.dispatch(setPosition({ position: data.position }));
-      // }
-      // if (data.hasOwnProperty('activeRoute')) {
-      //   this.store.dispatch(setActiveRoute({ route: data.activeRoute }));
-      // }
-      // if (data.hasOwnProperty('destinationNode')) {
-      //   this.store.dispatch(setDestination({ destination: data.destinationNode }));
-      // }
     };
-
-
-    // this.geo.position$.subscribe((location) => {
-    //   worker.postMessage(location);
-    // });
-
   }
 
   setViewport(viewport: Viewport) {
-    console.log('setViewport', viewport);
     this.worker.postMessage({ action: 'change-viewport', ...viewport});
   }
 

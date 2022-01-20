@@ -38,7 +38,6 @@ let discoveredRoutes: RouteMap = {};
 context.onmessage = ({ data }) => {
   switch (data.action) {
     case 'change-viewport': {
-      console.log('worker received bounds', data.bounds);
       viewports.next(data);
     }
       break;
@@ -153,7 +152,7 @@ neighborhood$.subscribe(({ nodes, routes, networkIds }) => {
 
   for (const routeCollection of routes) {
     for (const route of routeCollection.features) {
-      discoveredRoutes[route.properties.id] = route;
+      discoveredRoutes[route.properties.pid] = route;
     }
   }
 
@@ -171,19 +170,30 @@ debouncedPath$.subscribe(([start, end]) => {
   const pathFinder = new PathFinder(discoveredNodes);
 
   const path = pathFinder.findPath(start, end);
+
+  if (!path) {
+    context.postMessage({
+      response: 'path', error: 'NO_PATH'
+    });
+    return;
+  }
+
   const nodeIds = path[1];
+
+  const nodes = nodeIds.map((id) => discoveredNodes[id]);
 
   // Find the route that lays between each pair of nodes. It's probably better to find the route id based
   const routeIds = nodeIds.length <= 1 ? [] : nodeIds.slice(1, nodeIds.length).map((currNodeId, index) => {
-    const prevNodeId = nodeIds[index - 1];
+    const prevNodeId = nodeIds[index]; // index is one off because we start at the second node
     const currNode = discoveredNodes[currNodeId];
     const connection = currNode.properties.connections.find((connection) => connection.id === prevNodeId);
-    return connection.id;
+    return connection.route;
   });
 
+  const routes = routeIds.map((id) => discoveredRoutes[id]);
 
   context.postMessage({
-    response: 'path', distance: path[0], nodes: nodeIds, routes: routeIds
+    response: 'path', distance: path[0], nodes, routes
   });
 })
 

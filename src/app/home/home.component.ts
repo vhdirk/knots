@@ -31,6 +31,7 @@ export class HomeComponent implements OnInit {
   public nodeRadius = 15;
   public routeColor = this.nodeColor;
   public nodeStrokeWidth = this.nodeRadius / 5;
+  public routeStrokeWidth = 1;
 
   public locationPermission$!: Observable<boolean>;
   public locationPermission: boolean = false;
@@ -76,6 +77,26 @@ export class HomeComponent implements OnInit {
     await this.drawNodes(neighborhood.nodes, neighborhood.networkIds);
   }
 
+  async removeRouteLines(layerPrefix: string) {
+    await this.mapView.removeLayer(`${layerPrefix}-lines`);
+  }
+
+  async drawRouteLines(sourceId: string, layerPrefix: string, color = this.routeColor, width = this.routeStrokeWidth) {
+
+    await this.mapView.addLayer({
+      'id': `${layerPrefix}-lines`,
+      'type': 'line',
+      'source': sourceId,
+      "minzoom": this.minZoomLevel,
+      'paint': {
+        'line-color': color,
+        'line-width': width
+      },
+      'filter': ['==', '$type', 'LineString']
+    });
+  }
+
+
   async drawRoutes(routeCollections: FeatureCollection[], networkIds: number[]) {
     for (let i = 0; i < routeCollections.length; i++) {
       const routeCollection = routeCollections[i];
@@ -87,18 +108,50 @@ export class HomeComponent implements OnInit {
         'data': routeCollection,
       });
 
-      await this.mapView.addLayer({
-        'id': `${sourceId}-lines`,
-        'type': 'line',
-        'source': sourceId,
-        "minzoom": this.minZoomLevel,
-        'paint': {
-          'line-color': this.routeColor
-        },
-        // 'filter': ['==', '$type', 'LineString']
-      });
+      await this.drawRouteLines(sourceId, sourceId);
+    }
+  }
+
+  async removeNodeCircles(layerPrefix: string) {
+    await this.mapView.removeLayer(`${layerPrefix}-circles`);
+    await this.mapView.removeLayer(`${layerPrefix}-text`);
+  }
+
+  async drawNodeCircles(sourceId: string, layerPrefix: string, color = this.nodeColor, radius = this.nodeRadius, strokeWidth = this.nodeStrokeWidth) {
+
+    await this.mapView.addLayer({
+      'id': `${layerPrefix}-circles`,
+      'type': 'circle',
+      'source': sourceId,
+      "minzoom": this.minZoomLevel,
+      'paint': {
+        'circle-radius': radius,
+        'circle-color': '#ffffff',
+        'circle-stroke-width': strokeWidth,
+        'circle-stroke-color': color,
+      },
+      'filter': ['==', '$type', 'Point']
 
     }
+    );
+
+    await this.mapView.addLayer({
+      'id': `${layerPrefix}-text`,
+      'type': 'symbol',
+      'source': sourceId,
+      "minzoom": this.minZoomLevel,
+      'layout': {
+        'text-field': ['get', 'number'],
+        'text-allow-overlap': true,
+      },
+
+      'paint': {
+        'icon-color': color,
+      },
+      'filter': ['==', '$type', 'Point']
+    }
+    );
+
   }
 
   async drawNodes(nodeCollections: FeatureCollection[], networkIds: number[]) {
@@ -122,44 +175,61 @@ export class HomeComponent implements OnInit {
       });
 
 
-      await this.mapView.addLayer({
-        'id': `${sourceId}-circles`,
-        'type': 'circle',
-        'source': sourceId,
-        "minzoom": this.minZoomLevel,
-        'paint': {
-          'circle-radius': this.nodeRadius,
-          'circle-color': '#ffffff',
-          'circle-stroke-width': this.nodeStrokeWidth,
-          'circle-stroke-color': this.nodeColor,
-        },
-      }
-      );
+
       this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
         this.onMapClick(event, networkId);
       });
 
-
-      await this.mapView.addLayer({
-        'id': `${sourceId}-text`,
-        'type': 'symbol',
-        'source': sourceId,
-        "minzoom": this.minZoomLevel,
-        'layout': {
-          'text-field': ['get', 'number'],
-          'text-allow-overlap': true,
-        },
-
-        'paint': {
-          'icon-color': this.nodeColor,
-        }
-      }
-      );
+      await this.drawNodeCircles(sourceId, sourceId);
     }
   }
 
   async drawPath(pathState: PathState) {
 
+    const nodes = pathState.paths.map(p => p.nodes).flat();
+    const routes = pathState.paths.map(p => p.routes).flat();
+
+
+    try {
+      await this.removeNodeCircles('path');
+      await this.removeRouteLines('path');
+
+      await this.mapView.removeSource('path-routes');
+      await this.mapView.removeSource('path-nodes');
+    } catch (e) { }
+
+    const routeCollection = {
+      type: 'FeatureCollection',
+      features: routes
+    }
+
+    console.log('draw routes', pathState.paths[0]?.routes?.length);
+
+    await this.mapView.addSource('path-routes', {
+      'type': 'geojson',
+      'data': routeCollection
+    });
+
+    const nodeCollection = {
+      type: 'FeatureCollection',
+      features: nodes
+    }
+
+    await this.mapView.addSource('path-nodes', {
+      'type': 'geojson',
+      'data': nodeCollection,
+      'cluster': {
+        'radius': this.nodeRadius,
+        'maxZoom': this.maxClusterZoomLevel,
+        'properties': {
+          'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]],
+          'connections': [["coalesce", ["accumulated"], ["get", "connections"]], ["get", "connections"]]
+        }
+      },
+    });
+
+    await this.drawRouteLines('path-routes', 'path', '#ff00ff', 10);
+    await this.drawNodeCircles('path-nodes', 'path', '#ff00ff');
   }
 
   onDrawerButtonTap(): void {
@@ -183,7 +253,6 @@ export class HomeComponent implements OnInit {
   }
 
   onMapClick($event: Feature[], networkId: number): void {
-    console.log("onMapClick:", $event, networkId);
     const feature = $event[0];
 
     if (feature.geometry.type !== 'Point') {
@@ -200,7 +269,6 @@ export class HomeComponent implements OnInit {
     ]);
 
     this.pathService.addDestination(feature);
-
   }
 
   goBack() {

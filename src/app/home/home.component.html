@@ -1,14 +1,15 @@
-<ActionBar class="action-bar">
+<!-- <ActionBar class="action-bar">
   <NavigationButton visibility="hidden"></NavigationButton>
   <GridLayout columns="50, *">
     <Label class="action-bar-title" text="Home" colSpan="2"></Label>
 
     <Label class="fas" text="&#xf0c9;" (tap)="onDrawerButtonTap()"></Label>
   </GridLayout>
-</ActionBar>
+</ActionBar> -->
 
 <ActionBar title="Knots">
     <NavigationButton icon="res://ic_arrow_back_black_24dp" (tap)="goBack()"></NavigationButton>
+
     <ActionItem icon="font://&#xf013;" class="fas" ios.position="right" (tap)="openSettings()"></ActionItem>
 </ActionBar>
 
