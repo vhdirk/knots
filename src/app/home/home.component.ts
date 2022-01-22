@@ -99,18 +99,6 @@ export class HomeComponent implements OnInit {
     this.mapClick.asObservable().pipe(throttleTime(300), untilDestroyed(this)).subscribe(feature => {
       this.handleMapClick(feature);
     });
-
-
-
-
-
-
-
-
-
-
-
-
   }
 
   async drawNeighborhood(neighborhood: NeighborhoodState) {
