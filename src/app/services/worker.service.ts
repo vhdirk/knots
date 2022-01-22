@@ -1,8 +1,8 @@
-import { Injectable } from "@angular/core";
+import { ChangeDetectorRef, Injectable } from "@angular/core";
 import { NeighborhoodStore } from "./neighborhood.store";
-import { Viewport } from '@nativescript-community/ui-mapbox';
-import { PathState, PathStore } from "./path.store";
-
+import { Feature, Viewport } from '@nativescript-community/ui-mapbox';
+import { PlannerState, PlannerStore } from "./planner.store";
+import equal from 'fast-deep-equal/es6';
 export { PERMISSIONS } from "nativescript-permissions";
 
 @Injectable({
@@ -12,7 +12,7 @@ export class WorkerService {
 
   worker: Worker;
   constructor(protected neighborhoodStore: NeighborhoodStore,
-              protected pathStore: PathStore) { }
+              protected plannerStore: PlannerStore) { }
 
 
   setup() {
@@ -29,19 +29,38 @@ export class WorkerService {
 
       if (data.response === 'path') {
         if (data.error) {
-          this.pathStore.setError({'code': data.error});
+          this.plannerStore.setError({'code': data.error});
         } else {
-          console.log('received routes', data.routes.length);
-          this.pathStore.setLoading(false);
-          this.pathStore.update(state => {
-            const newState: PathState = {
+          console.log('first last node', data.nodes[0].properties.number, data.nodes[data.nodes.length - 1].properties.number);
+
+          const pathState = this.plannerStore.getValue();
+
+          if (pathState.paths?.length > 0 && equal(pathState.paths[pathState.paths.length - 1], data)) {
+            return;
+          }
+
+
+          this.plannerStore.update(state => {
+
+            if (state.paths.length == 0) {
+              const newState: PlannerState = {
+                start: data.nodes[0],
+                paths: [data]
+              }
+              return newState;
+            }
+
+            const newState: PlannerState = {
               start: state.start,
               paths: [...state.paths, data]
             }
             return newState;
           });
         }
+        this.plannerStore.setLoading(false);
       }
+
+      // this.changeDetectorRef.detectChanges();
     };
   }
 
@@ -49,7 +68,7 @@ export class WorkerService {
     this.worker.postMessage({ action: 'change-viewport', ...viewport});
   }
 
-  findPath(start: string, end: string) {
+  findPath(start: Feature, end: Feature) {
     this.worker.postMessage({ action: 'find-path', start, end });
   }
 

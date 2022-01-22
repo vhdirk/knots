@@ -1,4 +1,4 @@
-import { Observable } from 'rxjs'
+import { distinctUntilChanged, Observable, Subject } from 'rxjs'
 import { Component, OnInit } from '@angular/core'
 import { Application } from '@nativescript/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
@@ -11,10 +11,35 @@ import { PermissionsService, PERMISSIONS } from '../services/permissions.service
 import { NeighborhoodQuery } from '../services/neighborhood.query';
 import { NeighborhoodService } from '../services/neighborhood.service';
 import { NeighborhoodState } from '../services/neighborhood.store';
+import equal from 'fast-deep-equal/es6';
 
-import { PathQuery } from '../services/path.query';
-import { PathService } from '../services/path.service';
-import { PathState } from '../services/path.store';
+import { PlannerQuery } from '../services/planner.query';
+import { PlannerService } from '../services/planner.service';
+import { PlannerState } from '../services/planner.store';
+
+
+import { OperatorFunction, SchedulerLike, concat } from "rxjs";
+import { asyncScheduler } from "rxjs/internal/scheduler/async";
+import { debounceTime, publish, take, throttle, throttleTime } from "rxjs/operators";
+
+export function debounceTimeAfter(
+  amount: number,
+  dueTime: number,
+  scheduler: SchedulerLike = asyncScheduler,
+): OperatorFunction<number, number> {
+  return publish(value =>
+    concat(
+      value.pipe(take(amount)),
+      value.pipe(debounceTime(dueTime, scheduler))),
+  );
+}
+
+export function debounceTimeAfterFirst(
+  dueTime: number,
+  scheduler: SchedulerLike = asyncScheduler,
+): OperatorFunction<number, number> {
+  return debounceTimeAfter(1, dueTime, scheduler);
+}
 
 @UntilDestroy()
 @Component({
@@ -38,21 +63,19 @@ export class HomeComponent implements OnInit {
 
   public nodes: Feature[] = [];
 
+  protected mapClick: Subject<Feature> = new Subject();
+
   constructor(public events: EventsService,
     public settingsService: SettingsService,
     public permissionsService: PermissionsService,
     public neighborhoodQuery: NeighborhoodQuery,
     public neighborhoodService: NeighborhoodService,
-    public pathQuery: PathQuery,
-    public pathService: PathService) {
+    public plannerQuery: PlannerQuery,
+    public plannerService: PlannerService) {
 
   }
 
   ngOnInit(): void {
-    // Init your component properties here.
-    console.log("home: onInit");
-
-
     this.locationPermission$ = this.permissionsService.requestPermission(PERMISSIONS.LOCATION, "We use this permission to show you your current location and to give you the ability to track your rides.");
 
     this.locationPermission$.pipe(untilDestroyed(this)).subscribe(permission => {
@@ -61,18 +84,38 @@ export class HomeComponent implements OnInit {
 
     this.neighborhoodQuery.select().pipe(untilDestroyed(this)).subscribe(neighborhood => {
       if (this.mapView) {
+        console.log('got neighborhood');
         this.drawNeighborhood(neighborhood);
       }
     });
 
-    this.pathQuery.select().pipe(untilDestroyed(this)).subscribe(pathState => {
+    this.plannerQuery.select().pipe(distinctUntilChanged(equal),untilDestroyed(this)).subscribe(pathState => {
       if (this.mapView) {
         this.drawPath(pathState);
       }
     });
+
+
+    this.mapClick.asObservable().pipe(throttleTime(300), untilDestroyed(this)).subscribe(feature => {
+      this.handleMapClick(feature);
+    });
+
+
+
+
+
+
+
+
+
+
+
+
   }
 
   async drawNeighborhood(neighborhood: NeighborhoodState) {
+    console.log('drawing neighborhood');
+
     await this.drawRoutes(neighborhood.routes, neighborhood.networkIds);
     await this.drawNodes(neighborhood.nodes, neighborhood.networkIds);
   }
@@ -98,6 +141,8 @@ export class HomeComponent implements OnInit {
 
 
   async drawRoutes(routeCollections: FeatureCollection[], networkIds: number[]) {
+    console.log('drawing routes', routeCollections?.length, networkIds.length);
+
     for (let i = 0; i < routeCollections.length; i++) {
       const routeCollection = routeCollections[i];
       const networkId = networkIds[i];
@@ -115,6 +160,29 @@ export class HomeComponent implements OnInit {
   async removeNodeCircles(layerPrefix: string) {
     await this.mapView.removeLayer(`${layerPrefix}-circles`);
     await this.mapView.removeLayer(`${layerPrefix}-text`);
+  }
+
+  async addNodeSource(sourceId: string, collection: any) {
+    await this.mapView.addSource(sourceId, {
+      'type': 'geojson',
+      'data': collection,
+      'cluster': {
+        'radius': this.nodeRadius,
+        'maxZoom': this.maxClusterZoomLevel,
+        'properties': {
+          'id': [["coalesce", ["accumulated"], ["get", "id"]], ["get", "id"]],
+          'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]],
+          'connections': [["coalesce", ["accumulated"], ["get", "connections"]], ["get", "connections"]]
+        }
+      },
+    });
+  }
+
+  async addRouteSource(sourceId: string, collection: any) {
+    await this.mapView.addSource(sourceId, {
+      'type': 'geojson',
+      'data': collection
+    });
   }
 
   async drawNodeCircles(sourceId: string, layerPrefix: string, color = this.nodeColor, radius = this.nodeRadius, strokeWidth = this.nodeStrokeWidth) {
@@ -155,26 +223,14 @@ export class HomeComponent implements OnInit {
   }
 
   async drawNodes(nodeCollections: FeatureCollection[], networkIds: number[]) {
+    console.log('drawing nodes', nodeCollections?.length, networkIds.length);
 
     for (let i = 0; i < nodeCollections.length; i++) {
       const nodeCollection = nodeCollections[i];
       const networkId = networkIds[i];
 
       const sourceId = `nodes-${networkId}`;
-      await this.mapView.addSource(sourceId, {
-        'type': 'geojson',
-        'data': nodeCollection,
-        'cluster': {
-          'radius': this.nodeRadius,
-          'maxZoom': this.maxClusterZoomLevel,
-          'properties': {
-            'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]],
-            'connections': [["coalesce", ["accumulated"], ["get", "connections"]], ["get", "connections"]]
-          }
-        },
-      });
-
-
+      await this.addNodeSource(sourceId, nodeCollection);
 
       this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
         this.onMapClick(event, networkId);
@@ -184,11 +240,7 @@ export class HomeComponent implements OnInit {
     }
   }
 
-  async drawPath(pathState: PathState) {
-
-    const nodes = pathState.paths.map(p => p.nodes).flat();
-    const routes = pathState.paths.map(p => p.routes).flat();
-
+  async drawPath(pathState: PlannerState) {
 
     try {
       await this.removeNodeCircles('path');
@@ -198,6 +250,14 @@ export class HomeComponent implements OnInit {
       await this.mapView.removeSource('path-nodes');
     } catch (e) { }
 
+    if (!pathState.paths?.length) {
+      return;
+    }
+
+    // TODO: draw start flag
+    const nodes = pathState.paths.map(p => p.nodes).flat();
+    const routes = pathState.paths.map(p => p.routes).flat();
+
     const routeCollection = {
       type: 'FeatureCollection',
       features: routes
@@ -205,28 +265,15 @@ export class HomeComponent implements OnInit {
 
     console.log('draw routes', pathState.paths[0]?.routes?.length);
 
-    await this.mapView.addSource('path-routes', {
-      'type': 'geojson',
-      'data': routeCollection
-    });
+    await this.addRouteSource('path-routes', routeCollection);
 
     const nodeCollection = {
       type: 'FeatureCollection',
       features: nodes
     }
 
-    await this.mapView.addSource('path-nodes', {
-      'type': 'geojson',
-      'data': nodeCollection,
-      'cluster': {
-        'radius': this.nodeRadius,
-        'maxZoom': this.maxClusterZoomLevel,
-        'properties': {
-          'number': [["coalesce", ["accumulated"], ["get", "number"]], ["get", "number"]],
-          'connections': [["coalesce", ["accumulated"], ["get", "connections"]], ["get", "connections"]]
-        }
-      },
-    });
+    await this.addNodeSource('path-nodes', nodeCollection);
+
 
     await this.drawRouteLines('path-routes', 'path', '#ff00ff', 10);
     await this.drawNodeCircles('path-nodes', 'path', '#ff00ff');
@@ -259,24 +306,17 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    this.mapView.addMarkers([
-      {
-        id: feature.properties.number,
-        title: feature.properties.number,
-        lat: feature.geometry.coordinates[1],
-        lng: feature.geometry.coordinates[0],
-      }
-    ]);
-
-    this.pathService.addDestination(feature);
+    this.mapClick.next(feature);
   }
 
-  goBack() {
-
+  handleMapClick(feature: Feature) {
+    this.plannerService.addDestination(feature);
   }
 
-  openSettings() {
+  goBack(){}
 
+  undoLastDestination() {
+    this.plannerService.removeLastDestination();
   }
 
 }

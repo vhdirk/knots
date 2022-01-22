@@ -8,10 +8,11 @@ import { EventsService } from './services/events.service';
 import { SettingsService } from './services/settings.service';
 import { NeighborhoodStore } from './services/neighborhood.store';
 import { WorkerService } from './services/worker.service'
+import { CommonModule } from '@angular/common'
 
 @NgModule({
   bootstrap: [AppComponent],
-  imports: [AppRoutingModule, NativeScriptModule, NativeScriptUISideDrawerModule],
+  imports: [AppRoutingModule, CommonModule, NativeScriptModule, NativeScriptUISideDrawerModule],
   declarations: [AppComponent],
   providers: [EventsService, SettingsService],
   schemas: [NO_ERRORS_SCHEMA],

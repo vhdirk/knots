@@ -17,6 +17,10 @@ export class PathFinder {
       default:
         return dijkstra(this.graph, start, end);
     }
+
+
+
+
   }
 
 }

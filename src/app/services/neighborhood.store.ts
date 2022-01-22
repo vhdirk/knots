@@ -13,8 +13,8 @@ export interface NeighborhoodState {
 export function createInitialState(): NeighborhoodState {
   return {
     networkIds: [],
-    nodes: null,
-    routes: null,
+    nodes: [],
+    routes: [],
   };
 }
 

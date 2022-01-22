@@ -27,7 +27,7 @@ function uniqueArray(arrArg: any[]): any[] {
 
 // Create actions stream
 const viewports = new Subject<Viewport>();
-const paths = new Subject<[string, string]>();
+const paths = new Subject<[Feature<Point>, Feature<Point>]>();
 
 let discoveredNetworks = [];
 
@@ -158,7 +158,7 @@ neighborhood$.subscribe(({ nodes, routes, networkIds }) => {
 
 });
 
-const path$: Observable<[string, string]> = paths.asObservable();
+const path$: Observable<[Feature<Point>, Feature<Point>]> = paths.asObservable();
 
 
 const debouncedPath$ = path$.pipe(
@@ -169,7 +169,7 @@ const debouncedPath$ = path$.pipe(
 debouncedPath$.subscribe(([start, end]) => {
   const pathFinder = new PathFinder(discoveredNodes);
 
-  const path = pathFinder.findPath(start, end);
+  const path = pathFinder.findPath(start.properties.id, end.properties.id);
 
   if (!path) {
     context.postMessage({
@@ -178,9 +178,9 @@ debouncedPath$.subscribe(([start, end]) => {
     return;
   }
 
-  const nodeIds = path[1];
+  let [distance, nodeIds] = path;
 
-  const nodes = nodeIds.map((id) => discoveredNodes[id]);
+  let nodes = nodeIds.map((id) => discoveredNodes[id]);
 
   // Find the route that lays between each pair of nodes. It's probably better to find the route id based
   const routeIds = nodeIds.length <= 1 ? [] : nodeIds.slice(1, nodeIds.length).map((currNodeId, index) => {
@@ -190,10 +190,50 @@ debouncedPath$.subscribe(([start, end]) => {
     return connection.route;
   });
 
-  const routes = routeIds.map((id) => discoveredRoutes[id]);
+  let routes = routeIds.map((id) => discoveredRoutes[id]);
+
+
+  if (start.properties.cluster) {
+    // filter begin of routes to remove instances of the same node number
+    let i = 0;
+    for (; i < nodes.length; i++) {
+      if (nodes[i].properties.number !== start.properties.number) {
+        break;
+      }
+    }
+
+    nodes = nodes.slice(i-1);
+    for (let j = 0; j < i; j++) {
+      distance -= routes[j].properties.distance;
+    }
+
+    routes = routes.slice(i-1);
+  }
+
+
+  if (end.properties.cluster) {
+    let i = nodes.length-1;
+    for (; i > 0; i--) {
+      console.log('nodes', i, nodes[i]?.properties?.number);
+      if (nodes[i].properties.number !== end.properties.number) {
+        break;
+      }
+    }
+
+    nodes = nodes.slice(0, i+2);
+    for (let j = routes.length-1; j > i+2; j--) {
+      console.log('routes', j, routes[j]?.properties?.distance);
+
+      distance -= routes[j].properties.distance;
+    }
+
+    routes = routes.slice(0, i+1);
+  }
+
+  console.log('nodes', nodes.length, 'routes', routes.length);
 
   context.postMessage({
-    response: 'path', distance: path[0], nodes, routes
+    response: 'path', distance, nodes, routes
   });
 })
 
