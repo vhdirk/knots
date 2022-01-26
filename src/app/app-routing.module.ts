@@ -9,6 +9,10 @@ const routes: Routes = [
     loadChildren: () => import('~/app/home/home.module').then((m) => m.HomeModule),
   },
   {
+    path: 'detail',
+    loadChildren: () => import('~/app/detail/detail.module').then((m) => m.DetailModule),
+  },
+  {
     path: 'settings',
     loadChildren: () => import('~/app/settings/settings.module').then((m) => m.SettingsModule),
   },

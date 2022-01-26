@@ -15,50 +15,82 @@ export class PlannerService {
   constructor(protected worker: WorkerService, protected plannerStore: PlannerStore) {
   }
 
-  addDestination(destination: Feature) {
-    console.log('destination',  destination)
+  getNodes(state: PlannerState): Feature[] {
+    if (state?.paths?.length) {
+      return state.paths.map(p => p.nodes).flat();
+    }
 
-    const pathState = this.plannerStore.getValue();
+    if (state?.start) {
+      return [state.start];
+    }
+
+    return [];
+  }
+
+  getKeyNodes(state: PlannerState): Feature[] {
+    if (state?.paths?.length) {
+      return [state.start, ...state.paths.map(p => {
+        return p.nodes[p.nodes.length - 1];
+
+      })]
+    }
+
+    if (state?.start) {
+      return [state.start];
+    }
+
+    return [];
+  }
+
+  getRoutes(state: PlannerState): Feature[] {
+    if (state?.paths?.length) {
+      return state.paths.map(p => p.routes).flat();
+    }
+    return [];
+  }
+
+  addDestination(destination: Feature) {
+    const plannerState = this.plannerStore.getValue();
     const destinationId = <string>(<any>destination.properties).id;
-    if (<string>(<any>pathState.start?.properties)?.id === destinationId) {
+    if (<string>(<any>plannerState.start?.properties)?.id === destinationId) {
       return;
     }
 
-    if (pathState.start === null) {
+    if (plannerState.start === null) {
       this.plannerStore.update({ start: destination });
       return;
     }
 
-    if (pathState.start === destination) {
+    if (plannerState.start === destination) {
+      return;
+    }
+
+
+    if (!plannerState?.paths?.length) {
+      this.plannerStore.setLoading(true);
+      this.worker.findPath(plannerState.start, destination);
+      return;
+    }
+
+    const lastPath = lastElement(plannerState.paths);
+    const lastNode = lastElement(lastPath.nodes);
+
+    if (lastNode === destination) {
       return;
     }
 
     this.plannerStore.setLoading(true);
-
-    if (!pathState?.paths?.length) {
-      this.worker.findPath(pathState.start, destination);
-      return;
-    }
-
-    const lastPath = lastElement(pathState.paths);
-    const lastNode = lastElement(lastPath.nodes);
-
-    if (lastNode === destination) {
-      this.plannerStore.setLoading(false);
-      return;
-    }
-
     this.worker.findPath(lastNode, destination);
   }
 
   removeLastDestination() {
-    const pathState = this.plannerStore.getValue();
-    if (pathState.start === null) {
+    const plannerState = this.plannerStore.getValue();
+    if (plannerState.start === null) {
       // Nothing to do
       return;
     }
 
-    if (!pathState.paths.length) {
+    if (!plannerState.paths.length) {
       this.plannerStore.update({ start: null });
       return;
     }
@@ -71,6 +103,11 @@ export class PlannerService {
       return newState;
     });
   }
+
+  deletePath() {
+    this.plannerStore.update({ start: null, paths: [] });
+  }
+
 
 }
 

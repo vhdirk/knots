@@ -7,23 +7,64 @@
   </GridLayout>
 </ActionBar> -->
 
-<ActionBar title="Knots">
+<ActionBar #actionBar title="Knots" [backgroundColor]="nodeColor" color="white">
   <NavigationButton
-    icon="res://ic_arrow_back_black_24dp"
-    (tap)="goBack()"
+    class="mdi"
+    [icon]="'font://' + ('mdi-menu' | fonticon)"
+    (tap)="onDrawerButtonTap()"
   ></NavigationButton>
 
+
+
+
+
   <ActionItem
-    icon="font://&#xf013;"
-    class="fas"
+    class="mdi"
+    [icon]="'font://' + ('mdi-search' | fonticon)"
+    ios.position="right"
+    (tap)="search()"
+  ></ActionItem>
+
+
+  <ActionItem
+    class="mdi"
+    [icon]="'font://' + ('mdi-list' | fonticon)"
+    ios.position="right"
+    (tap)="openDetails()"
+  ></ActionItem>
+
+  <ActionItem
+    #saveButton
+    class="mdi"
+    [icon]="'font://' + ('mdi-save' | fonticon)"
+    ios.position="right"
+    (tap)="save()"
+  >lala</ActionItem>
+
+  <ActionItem
+    #undoButton
+    class="mdi"
+    [icon]="'font://' + ('mdi-undo' | fonticon)"
     ios.position="right"
     (tap)="undoLastDestination()"
   ></ActionItem>
 
+  <ActionItem
+    #deleteButton
+    [icon]="'font://' + ('mdi-delete' | fonticon)"
+    class="mdi"
+    ios.position="right"
+    (tap)="deletePath()"
+  ></ActionItem>
 </ActionBar>
 
-<AbsoluteLayout height="100%" width="100%">
-  <ContentView left="0" top="0" height="100%" width="100%">
+<DockLayout [stretchLastChild]="true">
+  <KnotsPlannerBar backgroundColor="#e4fcd7"
+    dock="top"
+    width="100%"
+    height="100"
+  ></KnotsPlannerBar>
+  <ContentView>
     <Mapbox
       [enableLocationRequest]="false"
       [showUserLocation]="true"
@@ -38,11 +79,5 @@
       (moveEnd)="onCameraChanged($event)"
     ></Mapbox>
   </ContentView>
-  <KnotsPathBar
-    left="0"
-    top="0"
-    width="100%"
-    height="100"
-    backgroundColor="#aa289062"
-  ></KnotsPathBar>
-</AbsoluteLayout>
+</DockLayout>
+

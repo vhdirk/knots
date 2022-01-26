@@ -1,0 +1,19 @@
+<GridLayout rows="30,35" , columns="100, *, *">
+  <KnotsNode rowSpan="2" row="0" col="0" [node]="segment.node"></KnotsNode>
+
+  <label row="0" col="1" text="Distance" class="label"></label>
+  <label row="1" col="1" class="value">
+    <FormattedString>
+      <span [text]="segment.distance / 1000 | number:'1.1-2'"></span>
+      <span text=" km" class="unit"></span>
+    </FormattedString>
+  </label>
+
+  <label row="0" col="2" text="Total" class="label"></label>
+  <label row="1" col="2" class="value">
+    <FormattedString>
+      <span [text]="segment.cumulativeDistance / 1000 | number:'1.1-2'"></span>
+      <span text=" km" class="unit"></span>
+    </FormattedString>
+  </label>
+</GridLayout>

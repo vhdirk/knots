@@ -1,6 +1,6 @@
 import { distinctUntilChanged, Observable, Subject } from 'rxjs'
-import { Component, OnInit } from '@angular/core'
-import { Application } from '@nativescript/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core'
+import { ActionBar, ActionItem, Application, isAndroid } from '@nativescript/core';
 import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 import { Feature, FeatureCollection } from 'geojson';
 import { MapboxApi, MapStyle } from '@nativescript-community/ui-mapbox';
@@ -21,6 +21,7 @@ import { PlannerState } from '../services/planner.store';
 import { OperatorFunction, SchedulerLike, concat } from "rxjs";
 import { asyncScheduler } from "rxjs/internal/scheduler/async";
 import { debounceTime, publish, take, throttle, throttleTime } from "rxjs/operators";
+import { RouterExtensions } from '@nativescript/angular';
 
 export function debounceTimeAfter(
   amount: number,
@@ -48,15 +49,22 @@ export function debounceTimeAfterFirst(
 })
 export class HomeComponent implements OnInit {
 
+  @ViewChild('actionBar', { static: true }) actionBar: ActionBar;
+  @ViewChild('saveButton', { static: false }) saveButton: ActionItem;
+  @ViewChild('undoButton', { static: false }) undoButton: ActionItem;
+  @ViewChild('deleteButton', { static: false }) deleteButton: ActionItem;
+
   MapStyle: typeof MapStyle = MapStyle;
   public mapView: MapboxApi;
   public minZoomLevel = 10;
   public maxClusterZoomLevel = 20;
-  public nodeColor = '#5e7d50';
+  public nodeColor = '#569930';
+  public selectedNodeColor = '#245819';
+  public nodeFillColor = '#ffffff';
   public nodeRadius = 15;
   public routeColor = this.nodeColor;
   public nodeStrokeWidth = this.nodeRadius / 5;
-  public routeStrokeWidth = 1;
+  public routeStrokeWidth = 4;
 
   public locationPermission$!: Observable<boolean>;
   public locationPermission: boolean = false;
@@ -71,7 +79,8 @@ export class HomeComponent implements OnInit {
     public neighborhoodQuery: NeighborhoodQuery,
     public neighborhoodService: NeighborhoodService,
     public plannerQuery: PlannerQuery,
-    public plannerService: PlannerService) {
+    public plannerService: PlannerService,
+    private routerExtensions: RouterExtensions) {
 
   }
 
@@ -89,16 +98,19 @@ export class HomeComponent implements OnInit {
       }
     });
 
-    this.plannerQuery.select().pipe(distinctUntilChanged(equal),untilDestroyed(this)).subscribe(pathState => {
+    this.plannerQuery.select().pipe(distinctUntilChanged(equal), untilDestroyed(this)).subscribe(plannerState => {
       if (this.mapView) {
-        this.drawPath(pathState);
+        this.drawPath(plannerState);
       }
-    });
 
+      this.enableButtons(!!plannerState.start);
+    });
 
     this.mapClick.asObservable().pipe(throttleTime(300), untilDestroyed(this)).subscribe(feature => {
       this.handleMapClick(feature);
     });
+
+    this.enableButtons(false);
   }
 
   async drawNeighborhood(neighborhood: NeighborhoodState) {
@@ -112,16 +124,25 @@ export class HomeComponent implements OnInit {
     await this.mapView.removeLayer(`${layerPrefix}-lines`);
   }
 
-  async drawRouteLines(sourceId: string, layerPrefix: string, color = this.routeColor, width = this.routeStrokeWidth) {
+  async drawRouteLines(sourceId: string, layerPrefix: string, options?: {
+    width?: number,
+    color?: string,
+    minZoomLevel?: number,
+  }) {
+
+    const color = options?.color || this.routeColor;
+    const width = options?.width || this.routeStrokeWidth;
+    const minZoomLevel = options?.minZoomLevel || this.minZoomLevel;
 
     await this.mapView.addLayer({
       'id': `${layerPrefix}-lines`,
       'type': 'line',
       'source': sourceId,
-      "minzoom": this.minZoomLevel,
+      "minzoom": minZoomLevel,
       'paint': {
         'line-color': color,
-        'line-width': width
+        'line-width': width,
+        'line-join': 'round',
       },
       'filter': ['==', '$type', 'LineString']
     });
@@ -173,29 +194,45 @@ export class HomeComponent implements OnInit {
     });
   }
 
-  async drawNodeCircles(sourceId: string, layerPrefix: string, color = this.nodeColor, radius = this.nodeRadius, strokeWidth = this.nodeStrokeWidth) {
+  async drawNodeCircles(sourceId: string, layerPrefix: string, options?: {
+    color?: string,
+    fillColor?: string,
+    strokeWidth?: number,
+    radius?: number,
+    strokeColor?: string,
+    minZoomLevel?: number,
+  }) {
+
+    const color = options?.color || this.nodeColor;
+    const radius = options?.radius || this.nodeRadius;
+    const fillColor = options?.fillColor || this.nodeFillColor;
+    const strokeWidth = options?.strokeWidth || this.nodeStrokeWidth;
+    const strokeColor = options?.strokeColor || this.nodeColor;
+    const minZoomLevel = options?.minZoomLevel || this.minZoomLevel;
 
     await this.mapView.addLayer({
       'id': `${layerPrefix}-circles`,
       'type': 'circle',
       'source': sourceId,
-      "minzoom": this.minZoomLevel,
+      "minzoom": minZoomLevel,
       'paint': {
         'circle-radius': radius,
-        'circle-color': '#ffffff',
+        'circle-color': fillColor,
         'circle-stroke-width': strokeWidth,
-        'circle-stroke-color': color,
+        'circle-stroke-color': strokeColor,
       },
       'filter': ['==', '$type', 'Point']
+    });
 
-    }
-    );
+    this.mapView.onMapEvent('click', `${layerPrefix}-circles`, (event) => {
+      this.onMapClick(event);
+    });
 
     await this.mapView.addLayer({
       'id': `${layerPrefix}-text`,
       'type': 'symbol',
       'source': sourceId,
-      "minzoom": this.minZoomLevel,
+      "minzoom": minZoomLevel,
       'layout': {
         'text-field': ['get', 'number'],
         'text-allow-overlap': true,
@@ -203,10 +240,10 @@ export class HomeComponent implements OnInit {
 
       'paint': {
         'icon-color': color,
+        'text-color': color,
       },
       'filter': ['==', '$type', 'Point']
-    }
-    );
+    });
 
   }
 
@@ -220,52 +257,53 @@ export class HomeComponent implements OnInit {
       const sourceId = `nodes-${networkId}`;
       await this.addNodeSource(sourceId, nodeCollection);
 
-      this.mapView.onMapEvent('click', `${sourceId}-circles`, (event) => {
-        this.onMapClick(event, networkId);
-      });
-
       await this.drawNodeCircles(sourceId, sourceId);
     }
   }
 
-  async drawPath(pathState: PlannerState) {
+  async drawPath(plannerState: PlannerState) {
 
     try {
       await this.removeNodeCircles('path');
+    } catch (e) { }
+    try {
       await this.removeRouteLines('path');
-
+    } catch (e) { }
+    try {
       await this.mapView.removeSource('path-routes');
+    } catch (e) { }
+    try {
       await this.mapView.removeSource('path-nodes');
     } catch (e) { }
 
-    if (!pathState.paths?.length) {
-      return;
-    }
-
-    // TODO: draw start flag
-    const nodes = pathState.paths.map(p => p.nodes).flat();
-    const routes = pathState.paths.map(p => p.routes).flat();
 
     const routeCollection = {
       type: 'FeatureCollection',
-      features: routes
+      features: this.plannerService.getRoutes(plannerState)
     }
 
-    console.log('draw routes', pathState.paths[0]?.routes?.length);
+    // TODO: draw start flag
 
     await this.addRouteSource('path-routes', routeCollection);
+    await this.drawRouteLines('path-routes', 'path', {
+      color: this.selectedNodeColor,
+      width: 8,
+      minZoomLevel: 5,
+    });
 
     const nodeCollection = {
       type: 'FeatureCollection',
-      features: nodes
+      features: this.plannerService.getNodes(plannerState)
     }
 
     await this.addNodeSource('path-nodes', nodeCollection);
-
-
-    await this.drawRouteLines('path-routes', 'path', '#ff00ff', 10);
-    await this.drawNodeCircles('path-nodes', 'path', '#ff00ff');
+    await this.drawNodeCircles('path-nodes', 'path', {
+      color: '#ffffff',
+      strokeColor: this.selectedNodeColor,
+      fillColor: this.selectedNodeColor,
+    });
   }
+
 
   onDrawerButtonTap(): void {
     const sideDrawer = <RadSideDrawer>Application.getRootView()
@@ -287,7 +325,7 @@ export class HomeComponent implements OnInit {
     this.neighborhoodService.setViewport(viewport);
   }
 
-  onMapClick($event: Feature[], networkId: number): void {
+  onMapClick($event: Feature[]): void {
     const feature = $event[0];
 
     if (feature.geometry.type !== 'Point') {
@@ -301,10 +339,46 @@ export class HomeComponent implements OnInit {
     this.plannerService.addDestination(feature);
   }
 
-  goBack(){}
+  goBack() { }
 
   undoLastDestination() {
     this.plannerService.removeLastDestination();
+  }
+
+  deletePath() {
+    this.plannerService.deletePath();
+  }
+
+  save() {
+    // this.plannerService.deletePath();
+  }
+
+  enableButtons(enable: boolean) {
+    if (isAndroid) {
+      this.actionBar.isEnabled = enable;
+      // this.saveButton.actionView.isEnabled = enable;
+      // this.undoButton.actionBar.isEnabled = enable;
+      // this.deleteButton.actionView.isEnabled = enable;
+    }
+  }
+
+  search() {
+
+  }
+
+  openDetails(){
+    this.navigateTo('/detail');
+  }
+
+  navigateTo(navItemRoute: string): void {
+    this.routerExtensions.navigate([navItemRoute], {
+      transition: {
+        name: 'fade',
+      },
+    })
+
+    const sideDrawer = <RadSideDrawer>Application.getRootView();
+    sideDrawer.closeDrawer();
   }
 
 }

@@ -2,18 +2,29 @@
 import { enableProdMode, NgModuleRef } from '@angular/core';
 import { runNativeScriptAngularApp, platformNativeScript } from '@nativescript/angular';
 
+import { themer } from '@nativescript-community/ui-material-core';
+import { installMixins } from '@nativescript-community/ui-material-core';
+
 import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
+import { enableAkitaProdMode } from '@datorama/akita';
 
+if (global.isIOS) {
+  themer.setPrimaryColor('#bff937');
+  themer.setAccentColor('#ff8a39');
+  themer.setSecondaryColor('#a830d7');
+}
+
+installMixins();
 
 if (environment.production) {
   enableProdMode();
-  // enableAkitaProdMode();
+  enableAkitaProdMode();
 }
 
 
 runNativeScriptAngularApp({
-  appModuleBootstrap: () => platformNativeScript().bootstrapModule(AppModule),
+  appModuleBootstrap: () => platformNativeScript().bootstrapModule(AppModule, { ngZoneEventCoalescing: true }),
 });
 
 

@@ -17,6 +17,13 @@ export class AppComponent implements OnInit {
   private _activatedUrl: string
   private _sideDrawerTransition: DrawerTransitionBase
 
+
+  cities: { index: number, name: string, city: string, state: string, temp: string, img: string }[] = [
+    { index: 0, name: "Banff, AB", city: "Banff", state: "Alberta, Canada", temp: "21°C", img: "~/images/banff.jpg" },
+    { index: 1, name: "Barrow, AK", city: "Barrow", state: "Alaska, USA", temp: "-5°F", img: "~/images/barrow.jpg" },
+    { index: 2, name: "San Diego, CA", city: "San Diego", state: "California, USA", temp: "84°F", img: "~/images/sandiego.jpg" }
+  ];
+
   constructor(private router: Router, private routerExtensions: RouterExtensions) {
     // Use the component constructor to inject services.
   }
@@ -47,5 +54,10 @@ export class AppComponent implements OnInit {
 
     const sideDrawer = <RadSideDrawer>Application.getRootView()
     sideDrawer.closeDrawer()
+  }
+
+  chooseCity(args): void {
+    let obj = this.cities[args.index];
+
   }
 }

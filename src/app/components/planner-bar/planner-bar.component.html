@@ -1,0 +1,5 @@
+<ScrollView row="1"  orientation="horizontal" height="70">
+    <FlexboxLayout alignItems="center" class="planner-bar">
+        <KnotsNode *ngFor="let node of nodes$| async" class="key-node" [node]="node.node" [isKeyNode]="node.keyNode" class="node" width="70" paddingLeft="10"></KnotsNode>
+    </FlexboxLayout>
+</ScrollView>

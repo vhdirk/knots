@@ -51,15 +51,11 @@ context.onmessage = ({ data }) => {
 };
 
 function fetchObject<T>(filename: string): Observable<T> {
-  console.log('fetching', filename);
   let contents = observableFrom(nodecyclerData.getFile(`${filename}.json`).readText())
     .pipe(map(contents => {
-      console.log('read length', contents.length)
       return JSON.parse(contents) as T
-
     }
-
-    ));
+  ));
 
   let obs = connectable(contents, {
     connector: () => new ReplaySubject<T>(1),
@@ -87,15 +83,10 @@ function getNetworksInViewport(viewport: Viewport): Observable<number[]> {
   return fetchNetworks()
     .pipe(
       map((networks) => {
-        if (viewport.zoomLevel < 10) {
-          return [];
-        }
-
         const features = networks.features.filter(feature => feature.geometry.type === 'Polygon') as Feature<Polygon>[];
         const ret = features.filter((feature: Feature<Polygon>) => {
           return turf.booleanOverlap(viewportPolygon, feature) || turf.booleanContains(viewportPolygon, feature);
         }).map(feature => feature.properties.id);
-        // console.log('nearby networks', ret);
         return ret;
       }));
 }
@@ -138,7 +129,6 @@ const neighborhood$ = debouncedViewport$.pipe(
 // Subscribers to post data back to app
 neighborhood$.subscribe(({ nodes, routes, networkIds }) => {
   context.postMessage({ response: 'neighborhood', nodes, routes, networkIds });
-  console.log("postMessage", nodes[0])
 
   // mark networks as discovered
   discoveredNetworks = uniqueArray([...discoveredNetworks, ...networkIds]);
@@ -202,35 +192,30 @@ debouncedPath$.subscribe(([start, end]) => {
       }
     }
 
-    nodes = nodes.slice(i-1);
+    nodes = nodes.slice(i - 1);
     for (let j = 0; j < i; j++) {
       distance -= routes[j].properties.distance;
     }
 
-    routes = routes.slice(i-1);
+    routes = routes.slice(i - 1);
   }
 
 
   if (end.properties.cluster) {
-    let i = nodes.length-1;
+    let i = nodes.length - 1;
     for (; i > 0; i--) {
-      console.log('nodes', i, nodes[i]?.properties?.number);
       if (nodes[i].properties.number !== end.properties.number) {
         break;
       }
     }
 
-    nodes = nodes.slice(0, i+2);
-    for (let j = routes.length-1; j > i+2; j--) {
-      console.log('routes', j, routes[j]?.properties?.distance);
-
+    nodes = nodes.slice(0, i + 2);
+    for (let j = routes.length - 1; j > i + 2; j--) {
       distance -= routes[j].properties.distance;
     }
 
-    routes = routes.slice(0, i+1);
+    routes = routes.slice(0, i + 1);
   }
-
-  console.log('nodes', nodes.length, 'routes', routes.length);
 
   context.postMessage({
     response: 'path', distance, nodes, routes
