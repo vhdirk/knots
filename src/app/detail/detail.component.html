@@ -8,7 +8,6 @@
 
 <ListView [items]="segments$ | async" class="list-group">
   <ng-template let-segment="item" let-i="index" let-odd="odd" let-even="even">
-    <!-- The item template can only have a single root view container (e.g. GridLayout, StackLayout, etc.)-->
       <KnotsPlannerRow [segment]="segment"></KnotsPlannerRow>
   </ng-template>
 </ListView>
